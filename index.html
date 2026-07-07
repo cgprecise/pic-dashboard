@@ -219,6 +219,43 @@
   .btn-primary { background: var(--blue); color: #fff; }
   .btn-ghost { background: transparent; color: var(--muted); border: 1px solid rgba(255,255,255,0.12); }
   .hint { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+
+  /* ── RESPONSIVE: tablet & phone ──────────────────────────────
+     Desktop stays a fixed one-screen wall board. On narrow screens
+     we unlock scrolling and reflow the grid so nothing is cut off. */
+  @media (max-width: 768px) {
+    body { height: auto; min-height: 100vh; overflow: auto; }
+    .header { height: auto; padding: 10px 16px; flex-wrap: wrap; gap: 10px 16px; }
+    .header-right { gap: 14px; }
+    .logo { font-size: 19px; }
+    .clock { font-size: 18px; }
+    .board {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: none;
+      grid-auto-rows: minmax(118px, auto);
+      gap: 12px;
+      padding: 12px 14px;
+    }
+    .tile { padding: 16px 18px; justify-content: flex-start; }
+    .tile-label { font-size: 11px; margin-bottom: 6px; }
+    .tile-value { font-size: 46px; letter-spacing: -1px; }
+    .tile-sub { font-size: 12px; margin-top: 6px; }
+    .tile.wide { grid-column: span 2; }
+    .age-bars { margin-top: 12px; gap: 8px; }
+    .footer { height: auto; flex-direction: column; gap: 3px; padding: 8px 16px; text-align: center; }
+    .footer > div:nth-child(2) { display: none; } /* hide keyboard hints on touch */
+    .alert-strip { padding: 8px 16px; font-size: 13px; }
+    .config-box { width: 92vw; padding: 22px; }
+  }
+
+  @media (max-width: 480px) {
+    .board { grid-template-columns: 1fr; }
+    .tile.wide { grid-column: span 1; }
+    .tile-value { font-size: 54px; }
+    /* weekly throughput: 4-across → 2x2 (overrides the inline grid) */
+    .tile.wide > div[style*="repeat(4"] { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+    .sub-label { display: none; }
+  }
 </style>
 </head>
 <body>
