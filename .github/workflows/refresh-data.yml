@@ -1,0 +1,50 @@
+name: Refresh dashboard data
+
+# Runs server-side on GitHub (no browser, so no CORS), pulls the sheet as CSV,
+# and commits it as data.csv next to the dashboard. The dashboard reads that
+# file from its own origin, so there is never a CORS problem on the client.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # every ~10 minutes (GitHub may delay under load)
+  workflow_dispatch:          # adds a manual "Run workflow" button for instant refresh
+
+# Let the built-in token commit back to the repo. No personal token needed.
+permissions:
+  contents: write
+
+# Never let two refreshes overlap.
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch sheet as CSV
+        run: |
+          # ── To point at a different sheet/tab later, change SHEET_ID / GID here. ──
+          SHEET_ID="1_7F6Fc0FV4McHeiSYVCvzaj4JOcD_6TwivfPELDOZKo"
+          GID="0"
+          URL="https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}"
+          curl -sL --fail --retry 3 --retry-delay 5 "$URL" -o data.csv
+          # Sanity check: must have a header + at least one data row, and the expected first column.
+          LINES=$(wc -l < data.csv)
+          echo "Fetched $LINES lines"
+          if [ "$LINES" -lt 2 ]; then echo "::error::CSV looks empty — aborting"; exit 1; fi
+          head -1 data.csv | grep -q "PO #" || { echo "::error::Unexpected header — aborting"; exit 1; }
+
+      - name: Commit if the data changed
+        run: |
+          git config user.name "pic-data-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.csv
+          if git diff --staged --quiet; then
+            echo "No change in data.csv — nothing to commit."
+          else
+            git commit -m "chore: refresh dashboard data"
+            git push
+          fi

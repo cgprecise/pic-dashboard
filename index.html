@@ -334,22 +334,21 @@
 <!-- FOOTER -->
 <div class="footer">
   <div id="lastUpdated">Last updated: —</div>
-  <div>Press <strong>F11</strong> for fullscreen &nbsp;·&nbsp; Auto-refreshes every 5 min &nbsp;·&nbsp; Press <strong>C</strong> to configure live data</div>
+  <div>Press <strong>F11</strong> for fullscreen &nbsp;·&nbsp; Auto-refreshes every 5 min &nbsp;·&nbsp; Press <strong>C</strong> for refresh settings</div>
   <div id="dataSource">Snapshot data · Jun 2026</div>
 </div>
 
 <!-- CONFIG OVERLAY -->
 <div class="config-overlay" id="configOverlay">
   <div class="config-box">
-    <div class="config-title">⚙ Connect live data</div>
-    <div class="config-label">Google Sheet published CSV URL</div>
-    <input class="config-input" id="csvUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+    <div class="config-title">⚙ Live data settings</div>
+    <div class="config-label">Data source</div>
+    <input class="config-input" id="csvUrl" type="text" readonly>
     <div class="hint">
-      To get this URL:<br>
-      1. Open your Google Sheet<br>
-      2. File → Share → Publish to web<br>
-      3. Select your tab → CSV → Publish<br>
-      4. Paste the URL above
+      Live data is pulled from your Google Sheet automatically by a GitHub
+      Action and saved to <strong>data.csv</strong> in this site — no setup
+      needed. To point at a different sheet or tab, edit
+      <strong>.github/workflows/refresh-data.yml</strong> in the repo.
     </div>
     <div class="config-label" style="margin-top:16px;">Refresh interval</div>
     <select class="config-input" id="refreshInterval">
@@ -375,13 +374,16 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // ── CONFIG ───────────────────────────────────────────────────
-let config = { csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQmcdNMfmoKt7lBMSzOJKizEUBmIpT9NnD476n_2WmT-1MH_HmDTnTYLkL8QxziYicnjvDFPBZf1WKR/pub?gid=0&single=true&output=csv', refreshInterval: 300000 };
-try { const saved = JSON.parse(localStorage.getItem('pic_bigboard_config') || '{}'); if(saved.csvUrl) config.csvUrl = saved.csvUrl; if(saved.refreshInterval) config.refreshInterval = saved.refreshInterval; } catch(e) {}
-document.getElementById('csvUrl').value = config.csvUrl || '';
+// Data is served from THIS site as data.csv, refreshed every ~10 min by a
+// GitHub Action (.github/workflows/refresh-data.yml). Same-origin fetch =
+// no CORS, no API key, no proxy. To change the source sheet, edit that file.
+const DATA_URL = 'data.csv';
+let config = { refreshInterval: 300000 };
+try { const saved = JSON.parse(localStorage.getItem('pic_bigboard_config') || '{}'); if(saved.refreshInterval) config.refreshInterval = saved.refreshInterval; } catch(e) {}
+document.getElementById('csvUrl').value = DATA_URL + '  (auto-updated by GitHub Action)';
 document.getElementById('refreshInterval').value = config.refreshInterval || 300000;
 
 function saveConfig() {
-  config.csvUrl = document.getElementById('csvUrl').value.trim();
   config.refreshInterval = parseInt(document.getElementById('refreshInterval').value);
   localStorage.setItem('pic_bigboard_config', JSON.stringify(config));
   closeConfig();
@@ -533,31 +535,27 @@ function processCSV(rows, rawRows) {
 
 // ── LOAD ─────────────────────────────────────────────────────
 async function loadData() {
-  const url = config.csvUrl;
-  if (!url) {
-    render(SNAPSHOT);
-    document.getElementById('dataSource').textContent = 'Snapshot · Jun 2026 · Press C to connect live data';
-    document.getElementById('livePill').style.color = 'var(--muted)';
-    document.getElementById('livePill').style.background = 'rgba(255,255,255,0.04)';
-    document.getElementById('livePill').style.borderColor = 'rgba(255,255,255,0.08)';
-    document.getElementById('livePill').innerHTML = '<div class="dot" style="background:var(--muted);animation:none;"></div> SNAPSHOT';
-    return;
-  }
   try {
-    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now());
-    const resp = await fetch(proxyUrl);
+    // Same-origin fetch of the file the GitHub Action keeps fresh. Cache-busted
+    // so the board always sees the latest commit, never a stale CDN copy.
+    const resp = await fetch(DATA_URL + '?_t=' + Date.now(), { cache: 'no-store' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const text = await resp.text();
+    if (!text || text.trim().length < 20) throw new Error('empty data');
     const rows = parseCSV(text);
     const rawRows = text.trim().split('\n');
     const d = processCSV(rows, rawRows);
     render(d);
-    document.getElementById('dataSource').textContent = 'Live · Google Sheets';
+    document.getElementById('dataSource').textContent = 'Live · Google Sheets (auto-synced)';
     document.getElementById('livePill').innerHTML = '<div class="dot"></div> LIVE';
     document.getElementById('livePill').style.color = 'var(--green)';
+    document.getElementById('livePill').style.background = 'rgba(29,233,168,0.08)';
+    document.getElementById('livePill').style.borderColor = 'rgba(29,233,168,0.2)';
   } catch(e) {
     render(SNAPSHOT);
     document.getElementById('dataSource').textContent = '⚠ Live fetch failed — showing snapshot';
+    document.getElementById('livePill').innerHTML = '<div class="dot" style="background:var(--muted);animation:none;"></div> SNAPSHOT';
+    document.getElementById('livePill').style.color = 'var(--muted)';
   }
 }
 
