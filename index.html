@@ -281,9 +281,9 @@
 
   <!-- Row 1 -->
   <div class="tile green">
-    <div class="tile-label">Active in house</div>
-    <div class="tile-value green" id="v-active">50</div>
-    <div class="tile-sub">orders currently in process</div>
+    <div class="tile-label">In house</div>
+    <div class="tile-value green" id="v-inhouse">70</div>
+    <div class="tile-sub">active orders &nbsp;·&nbsp; not yet shipped</div>
   </div>
 
   <div class="tile blue">
@@ -292,21 +292,21 @@
     <div class="tile-sub" id="v-avgdays-sub">days &nbsp;·&nbsp; target ≤10</div>
   </div>
 
-  <div class="tile amber">
-    <div class="tile-label">Pending — no invoice</div>
-    <div class="tile-value amber" id="v-pending">115</div>
-    <div class="tile-sub">orders awaiting invoicing</div>
-  </div>
-
   <div class="tile red">
-    <div class="tile-label">Critical — 15+ days</div>
+    <div class="tile-label">Critical — 15+ days in house</div>
     <div class="tile-value red" id="v-critical">35</div>
     <div class="tile-sub"><span class="down">need immediate review</span></div>
   </div>
 
+  <div class="tile amber">
+    <div class="tile-label">Oldest in house</div>
+    <div class="tile-value amber" id="v-oldest">28</div>
+    <div class="tile-sub">days &nbsp;·&nbsp; longest waiting</div>
+  </div>
+
   <!-- Row 2 -->
   <div class="tile neutral wide">
-    <div class="tile-label">Pending order age breakdown</div>
+    <div class="tile-label">In-house order age</div>
     <div class="age-bars">
       <div class="age-row">
         <div class="age-label">0–3 days</div>
@@ -435,8 +435,8 @@ document.addEventListener('keydown', e => {
 
 // ── SNAPSHOT DATA ─────────────────────────────────────────────
 const SNAPSHOT = {
-  active: 50, avgDays: 10.1, pending: 115, critical: 35,
-  ages: { a: 6, b: 35, c: 39, d: 35 },
+  inHouse: 70, avgDays: 6.4, critical: 19, oldest: 28,
+  ages: { a: 33, b: 0, c: 18, d: 19 },
   weeks: [
     { label: 'May 25', arrived: 57, rate: 96 },
     { label: 'Jun 01', arrived: 74, rate: 91 },
@@ -448,10 +448,10 @@ const SNAPSHOT = {
 
 // ── RENDER ───────────────────────────────────────────────────
 function render(d) {
-  document.getElementById('v-active').textContent = d.active;
+  document.getElementById('v-inhouse').textContent = d.inHouse;
   document.getElementById('v-avgdays').textContent = d.avgDays;
   document.getElementById('v-avgdays-sub').textContent = `days · target ≤10  ${parseFloat(d.avgDays) <= 10 ? '✓' : '▲ over target'}`;
-  document.getElementById('v-pending').textContent = d.pending;
+  document.getElementById('v-oldest').textContent = d.oldest;
   document.getElementById('v-critical').textContent = d.critical;
 
   // Age bars (max = largest bucket)
@@ -485,7 +485,7 @@ function render(d) {
   const alertStrip = document.getElementById('alertStrip');
   if (d.critical > 0) {
     alertStrip.classList.add('visible');
-    document.getElementById('alertText').textContent = `${d.critical} orders aged 15+ days with no invoice —`;
+    document.getElementById('alertText').textContent = `${d.critical} orders in house 15+ days —`;
     document.getElementById('ticker').innerHTML = d.criticalPOs.map(po =>
       `<strong>PO ${po}</strong>&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;`
     ).join('');
@@ -511,16 +511,16 @@ function parseCSV(text) {
 function processCSV(rows, rawRows) {
   const parseDate = s => { try { return new Date(s); } catch(e) { return null; } };
   const today = new Date();
-  const daysList = [], weekMap = {}, pendingCritical = [];
-  let pending = 0, critical = 0;
+  const daysList = [], weekMap = {}, inHouseCritical = [];
+  let inHouse = 0, critical = 0, oldest = 0;
   const ages = { a:0, b:0, c:0, d:0 };
 
   rows.forEach(r => {
     const arr = parseDate(r['Arrival Date']);
-    const ship = parseDate(r['Ship Date']);
+    const shipStr = (r['Ship Date']||'').trim();
     const inv = (r['Invoice #']||'').trim();
     const days = parseFloat(r['Days in House']);
-    if (!arr) return;
+    if (!arr || isNaN(arr)) return;
     if (!isNaN(days)) daysList.push(days);
 
     const monday = new Date(arr);
@@ -528,33 +528,27 @@ function processCSV(rows, rawRows) {
     const wk = monday.toLocaleDateString('en-US',{month:'short',day:'2-digit'});
     if (!weekMap[wk]) weekMap[wk] = { label: wk, arrived:0, shipped:0, date: monday };
     weekMap[wk].arrived++;
-    if (inv && ship) weekMap[wk].shipped++;
+    if (inv) weekMap[wk].shipped++;                 // invoice is created on ship day = shipped
 
-    if (!inv) {
-      pending++;
+    // In house = active order: has arrived but NO invoice AND NO ship date (not yet shipped)
+    if (!inv && !shipStr) {
+      inHouse++;
       const wait = Math.floor((today - arr)/86400000);
+      if (wait > oldest) oldest = wait;
       if (wait <= 3) ages.a++;
       else if (wait <= 7) ages.b++;
       else if (wait <= 14) ages.c++;
-      else { ages.d++; critical++; pendingCritical.push(r['PO #']||'—'); }
+      else { ages.d++; critical++; inHouseCritical.push(r['PO #']||'—'); }
     }
   });
 
-  // Compute avg days from Days in House column across all rows
+  // Avg turnaround from sheet col I (index 8 = "Avg Number of Days in House"); fall back to computed
   const avgDays = daysList.length ? (daysList.reduce((a,b)=>a+b,0)/daysList.length).toFixed(1) : '—';
-
-  // Read summary stats from raw first data row by column index
-  // Col I (index 8) = Avg Number of Days in House
-  // Col K (index 10) = Active Orders in House
-  // (empty col H causes named lookup to fail — use positional instead)
-  let activeOrders = 0;
-  let summaryAvgDays = avgDays; // fallback to computed
+  let summaryAvgDays = avgDays;
   if (rawRows.length > 1) {
     const cols = rawRows[1].split(',');
     const rawAvg = (cols[8] || '').trim().replace(/^"|"$/g,'');
-    const rawActive = (cols[10] || '').trim().replace(/^"|"$/g,'');
     if (rawAvg && !isNaN(parseFloat(rawAvg))) summaryAvgDays = parseFloat(rawAvg).toFixed(1);
-    if (rawActive && !isNaN(parseFloat(rawActive))) activeOrders = parseFloat(rawActive);
   }
 
   const weekKeys = Object.keys(weekMap).sort((a,b)=>weekMap[a].date-weekMap[b].date);
@@ -563,11 +557,9 @@ function processCSV(rows, rawRows) {
     arrived: weekMap[k].arrived,
     rate: weekMap[k].arrived ? Math.round(weekMap[k].shipped/weekMap[k].arrived*100) : null
   }));
+  if (weeks.length) weeks[weeks.length-1].rate = null;   // current week still in progress
 
-  // Mark last week as "in progress"
-  if (weeks.length) weeks[weeks.length-1].rate = null;
-
-  return { active: activeOrders, avgDays: summaryAvgDays, pending, critical, ages, weeks, criticalPOs: pendingCritical.slice(0,30) };
+  return { inHouse, avgDays: summaryAvgDays, critical, oldest, ages, weeks, criticalPOs: inHouseCritical.slice(0,30) };
 }
 
 // ── LOAD ─────────────────────────────────────────────────────
