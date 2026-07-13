@@ -516,6 +516,9 @@ function processCSV(rows, rawRows) {
   const ages = { a:0, b:0, c:0, d:0 };
 
   rows.forEach(r => {
+    // Skip "Long Term" flagged orders (large qty / multiple pallets / patterned recurring
+    // delivery) — their days-in-house are huge and not reflective of the real count.
+    if ((r['Long Term']||'').trim().toLowerCase() === 'yes') return;
     const arr = parseDate(r['Arrival Date']);
     const shipStr = (r['Ship Date']||'').trim();
     const inv = (r['Invoice #']||'').trim();
