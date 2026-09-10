@@ -435,35 +435,33 @@ const SNAPSHOT = {
   criticalPOs: ['031726-8','432782','1932','146121','74780','35322','26104271','4232605','50526','4102','26105752','26104551','43796','4500191382','52026','44260','22066','432873','RG1064474','RG1064483']
 };
 
-// ── ACCEPTED-ESTIMATE PIPELINE (QBO snapshot) ─────────────────
-// Order counts from currently-Accepted QuickBooks estimates. This does NOT
-// flow through the Google Sheet, so it is a manual snapshot — refresh it by
-// re-pulling QBO and updating the numbers below (or wire the cloud routine to it).
-const PIPELINE = {
-  asOf: 'Sep 10, 2026',
-  accepted: 163,
-  // [label, orders, bar color]
-  colors: [
-    ['Blue', 55, '#4f7cff'], ['Orange', 28, '#f5a623'], ['Red', 20, '#ff4f4f'],
-    ['Green', 19, '#1de9a8'], ['Yellow', 18, '#ffd23f'], ['Clear', 12, '#cfd6e6'],
-    ['Purple', 6, '#b06fff'], ['Pink', 5, '#ff77bc'], ['White', 4, '#ffffff'],
-    ['Gray', 1, '#8a90a8'], ['Brown', 1, '#b5734a'], ['Black', 1, '#3a4056']
-  ],
-  materials: [ ['McLube', 5], ['Emralon 310', 4], ['Specialty', 2], ['Klübertop', 1] ]
+// ── ACCEPTED-ESTIMATE PIPELINE ────────────────────────────────
+// Order counts from currently-Accepted QuickBooks estimates. Refreshed each
+// morning by a cloud routine that re-pulls QBO and commits pipeline.json;
+// the board just reads that file (same-origin). The numbers below are a
+// fallback shown only if pipeline.json can't be loaded.
+const COLOR_HEX = {
+  Blue:'#4f7cff', Orange:'#f5a623', Red:'#ff4f4f', Green:'#1de9a8', Yellow:'#ffd23f',
+  Clear:'#cfd6e6', Purple:'#b06fff', Pink:'#ff77bc', White:'#ffffff', Gray:'#8a90a8',
+  Grey:'#8a90a8', Brown:'#b5734a', Black:'#3a4056', Tan:'#c9a66b', Gold:'#e6c200', Silver:'#c0c6d8'
+};
+const PIPELINE_FALLBACK = {
+  asOf: 'Sep 10, 2026', accepted: 163,
+  colors: { Blue:55, Orange:28, Red:20, Green:19, Yellow:18, Clear:12, Purple:6, Pink:5, White:4, Gray:1, Brown:1, Black:1 },
+  materials: { 'McLube':5, 'Emralon 310':4, 'Specialty':2, 'Klübertop':1 }
 };
 
-function renderPipeline() {
-  const p = PIPELINE;
-  document.getElementById('pipeTotal').textContent = p.accepted;
-  document.getElementById('pipeAsOf').textContent = 'as of ' + p.asOf;
+function renderPipeline(p) {
+  document.getElementById('pipeTotal').textContent = (p.accepted != null ? p.accepted : '—');
+  document.getElementById('pipeAsOf').textContent = 'as of ' + (p.asOf || '—');
   const MAT_FILL = 'repeating-linear-gradient(45deg,#7a819e,#7a819e 4px,#565c78 4px,#565c78 8px)';
   const needsBorder = c => ['#ffffff','#cfd6e6','#3a4056'].includes((c||'').toLowerCase());
-  // One combined, count-ranked list: colors (tinted) + materials (hatched).
+  // One combined, count-ranked list: colors (tinted) + specialty materials (hatched).
   const items = [
-    ...p.colors.map(([n,v,col]) => ({n, v, fill: col, border: needsBorder(col)})),
-    ...p.materials.map(([n,v]) => ({n, v, fill: MAT_FILL, mat: true}))
+    ...Object.entries(p.colors||{}).map(([n,v]) => { const f = COLOR_HEX[n] || '#8a90a8'; return {n, v, fill:f, border:needsBorder(f)}; }),
+    ...Object.entries(p.materials||{}).map(([n,v]) => ({n, v, fill: MAT_FILL}))
   ].sort((a,b) => b.v - a.v);
-  const max = Math.max.apply(null, items.map(i => i.v));
+  const max = Math.max.apply(null, items.map(i => i.v).concat([1]));
   document.getElementById('pipeItems').innerHTML = items.map(i =>
     `<div class="pbar-row">
        <div class="pbar-label">${i.n}</div>
@@ -471,7 +469,16 @@ function renderPipeline() {
        <div class="pbar-count">${i.v}</div>
      </div>`).join('');
 }
-renderPipeline();
+async function loadPipeline() {
+  try {
+    const r = await fetch('pipeline.json?_t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    renderPipeline(await r.json());
+  } catch (e) {
+    renderPipeline(PIPELINE_FALLBACK);
+  }
+}
+loadPipeline();
 
 // ── RENDER ───────────────────────────────────────────────────
 function render(d) {
