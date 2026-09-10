@@ -297,7 +297,7 @@
   <div class="tile blue">
     <div class="tile-label">Avg turnaround</div>
     <div class="tile-value blue" id="v-avgdays">10.1</div>
-    <div class="tile-sub" id="v-avgdays-sub">days &nbsp;·&nbsp; target ≤10</div>
+    <div class="tile-sub" id="v-avgdays-sub">days &nbsp;·&nbsp; 7-day goal</div>
   </div>
 
   <div class="tile red">
@@ -341,7 +341,7 @@
 
   <div class="tile purple wide" id="pipelineTile">
     <div class="tile-label" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-      <span>Accepted pipeline — by color &amp; material</span>
+      <span>Orders in House by Color and Material</span>
       <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:500;white-space:nowrap;"><span id="pipeTotal">163</span> orders · <span id="pipeAsOf">as of —</span></span>
     </div>
     <div class="pipe-grid" id="pipeItems"></div>
@@ -484,7 +484,7 @@ loadPipeline();
 function render(d) {
   document.getElementById('v-inhouse').textContent = d.inHouse;
   document.getElementById('v-avgdays').textContent = d.avgDays;
-  document.getElementById('v-avgdays-sub').textContent = `days · target ≤10  ${parseFloat(d.avgDays) <= 10 ? '✓' : '▲ over target'}`;
+  document.getElementById('v-avgdays-sub').textContent = `days · 7-day goal  ${parseFloat(d.avgDays) <= 7 ? '✓' : '▲ over goal'}`;
   document.getElementById('v-oldest').textContent = d.oldest;
   document.getElementById('v-critical').textContent = d.critical;
 
