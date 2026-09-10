@@ -30,12 +30,27 @@ jobs:
           SHEET_ID="1_7F6Fc0FV4McHeiSYVCvzaj4JOcD_6TwivfPELDOZKo"
           GID="0"
           URL="https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}"
-          curl -sL --fail --retry 3 --retry-delay 5 "$URL" -o data.csv
-          # Sanity check: must have a header + at least one data row, and the expected first column.
-          LINES=$(wc -l < data.csv)
-          echo "Fetched $LINES lines"
-          if [ "$LINES" -lt 2 ]; then echo "::error::CSV looks empty — aborting"; exit 1; fi
-          head -1 data.csv | grep -q "PO #" || { echo "::error::Unexpected header — aborting"; exit 1; }
+          # A transient Google export blip should NOT fail the whole run — that just
+          # spams a "workflow failed" email for a problem that fixes itself. So: retry
+          # hard, and if it still fails, SKIP this cycle (exit 0) leaving data.csv
+          # untouched. The next run (~10 min) picks it up, and the daily 7am health
+          # check catches a genuine stall (data.csv older than 24h).
+          if curl -sL --fail --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 90 "$URL" -o data.csv.tmp; then
+            LINES=$(wc -l < data.csv.tmp)
+            echo "Fetched $LINES lines"
+            if [ "$LINES" -lt 2 ]; then
+              echo "::warning::CSV looks empty — skipping this refresh (keeping last good data.csv)"
+              rm -f data.csv.tmp; exit 0
+            fi
+            if ! head -1 data.csv.tmp | grep -q "PO #"; then
+              echo "::warning::Unexpected header — skipping this refresh (keeping last good data.csv)"
+              rm -f data.csv.tmp; exit 0
+            fi
+            mv data.csv.tmp data.csv
+          else
+            echo "::warning::Sheet fetch failed after retries — skipping this refresh (next run will retry)"
+            rm -f data.csv.tmp; exit 0
+          fi
 
       - name: Commit if the data changed
         run: |
