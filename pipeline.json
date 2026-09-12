@@ -1,16 +1,16 @@
 {
-  "asOf": "Sep 11, 2026",
-  "accepted": 147,
+  "asOf": "Sep 12, 2026",
+  "accepted": 145,
   "colors": {
     "Blue": 51,
-    "Orange": 24,
+    "Orange": 22,
     "Red": 18,
-    "Green": 17,
     "Yellow": 17,
+    "Green": 16,
     "Clear": 13,
-    "Purple": 5,
-    "Pink": 4,
-    "White": 3,
+    "Purple": 7,
+    "Pink": 5,
+    "White": 2,
     "Brown": 1,
     "Black": 1
   },
