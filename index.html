@@ -66,7 +66,7 @@
     flex: 1;
     display: grid;
     grid-template-rows: 1fr 1fr;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: repeat(10, 1fr);   /* row 1 = 5 stat tiles (span 2); row 2 = 2 wide tiles (span 5) */
     gap: 16px;
     padding: 20px 28px;
     min-height: 0;
@@ -127,8 +127,9 @@
   .tile-sub .warn { color: var(--amber); }
   .tile-sub .down { color: var(--red); }
 
-  /* Wide tiles (span 2 cols) */
-  .tile.wide { grid-column: span 2; }
+  /* 5 stat tiles per row (each spans 2 of 10); wide tiles span 5 (half) */
+  .tile { grid-column: span 2; }
+  .tile.wide { grid-column: span 5; }
 
   /* Pending age bar tile */
   .age-bars { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -245,7 +246,7 @@
       gap: 12px;
       padding: 12px 14px;
     }
-    .tile { padding: 16px 18px; justify-content: flex-start; }
+    .tile { padding: 16px 18px; justify-content: flex-start; grid-column: span 1; }
     .tile-label { font-size: 11px; margin-bottom: 6px; }
     .tile-value { font-size: 46px; letter-spacing: -1px; }
     .tile-sub { font-size: 12px; margin-top: 6px; }
@@ -259,7 +260,7 @@
 
   @media (max-width: 480px) {
     .board { grid-template-columns: 1fr; }
-    .tile.wide { grid-column: span 1; }
+    .tile, .tile.wide { grid-column: span 1; }
     .tile-value { font-size: 54px; }
     /* weekly throughput: 4-across → 2x2 (overrides the inline grid) */
     .tile.wide > div[style*="repeat(4"] { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
@@ -298,6 +299,12 @@
     <div class="tile-label">Avg turnaround</div>
     <div class="tile-value blue" id="v-avgdays">10.1</div>
     <div class="tile-sub" id="v-avgdays-sub">days &nbsp;·&nbsp; 7-day goal</div>
+  </div>
+
+  <div class="tile purple">
+    <div class="tile-label">Pallet Turnaround Time</div>
+    <div class="tile-value purple" id="v-pallet">—</div>
+    <div class="tile-sub" id="v-pallet-sub">days &nbsp;·&nbsp; completed pallet orders</div>
   </div>
 
   <div class="tile red">
@@ -424,7 +431,7 @@ document.addEventListener('keydown', e => {
 
 // ── SNAPSHOT DATA ─────────────────────────────────────────────
 const SNAPSHOT = {
-  inHouse: 70, avgDays: 6.4, critical: 19, oldest: 28,
+  inHouse: 70, avgDays: 6.4, palletDays: 15.2, critical: 19, oldest: 28,
   ages: { a: 33, b: 0, c: 18, d: 19 },
   weeks: [
     { label: 'May 25', arrived: 57, rate: 96 },
@@ -485,6 +492,7 @@ function render(d) {
   document.getElementById('v-inhouse').textContent = d.inHouse;
   document.getElementById('v-avgdays').textContent = d.avgDays;
   document.getElementById('v-avgdays-sub').textContent = `days · 7-day goal  ${parseFloat(d.avgDays) <= 7 ? '✓' : '▲ over goal'}`;
+  document.getElementById('v-pallet').textContent = d.palletDays;
   document.getElementById('v-oldest').textContent = d.oldest;
   document.getElementById('v-critical').textContent = d.critical;
 
@@ -529,7 +537,7 @@ function parseCSV(text) {
 function processCSV(rows, rawRows) {
   const parseDate = s => { try { return new Date(s); } catch(e) { return null; } };
   const today = new Date();
-  const daysList = [], weekMap = {}, inHouseCritical = [];
+  const daysList = [], palletDaysList = [], weekMap = {}, inHouseCritical = [];
   let inHouse = 0, critical = 0, oldest = 0;
   const ages = { a:0, b:0, c:0, d:0 };
 
@@ -546,6 +554,7 @@ function processCSV(rows, rawRows) {
     const longTerm = (r['Long Term']||'').trim().toLowerCase() === 'yes';
 
     if (!longTerm && !isNaN(days)) daysList.push(days);   // avg turnaround skips Long Term
+    if (longTerm && !isNaN(days)) palletDaysList.push(days);   // pallet turnaround = Long Term only (days set only when shipped)
 
     const monday = new Date(arr);
     monday.setDate(arr.getDate() - arr.getDay() + (arr.getDay()===0?-6:1));
@@ -567,14 +576,11 @@ function processCSV(rows, rawRows) {
     }
   });
 
-  // Avg turnaround from sheet col I (index 8 = "Avg Number of Days in House"); fall back to computed
-  const avgDays = daysList.length ? (daysList.reduce((a,b)=>a+b,0)/daysList.length).toFixed(1) : '—';
-  let summaryAvgDays = avgDays;
-  if (rawRows.length > 1) {
-    const cols = rawRows[1].split(',');
-    const rawAvg = (cols[8] || '').trim().replace(/^"|"$/g,'');
-    if (rawAvg && !isNaN(parseFloat(rawAvg))) summaryAvgDays = parseFloat(rawAvg).toFixed(1);
-  }
+  // Avg turnaround = mean Days-in-House of completed (shipped) non-pallet orders, computed
+  // fresh here (identical method to Pallet Turnaround). We deliberately do NOT read the
+  // sheet's col-I AVERAGEIF cell any more: its fixed row range had fallen behind the data
+  // and was reading high (6.8 vs the true 6.5). Fresh computation stays accurate as rows grow.
+  const summaryAvgDays = daysList.length ? (daysList.reduce((a,b)=>a+b,0)/daysList.length).toFixed(1) : '—';
 
   const weekKeys = Object.keys(weekMap).sort((a,b)=>weekMap[a].date-weekMap[b].date);
   const weeks = weekKeys.map(k => ({
@@ -584,7 +590,8 @@ function processCSV(rows, rawRows) {
   }));
   if (weeks.length) weeks[weeks.length-1].rate = null;   // current week still in progress
 
-  return { inHouse, avgDays: summaryAvgDays, critical, oldest, ages, weeks, criticalPOs: inHouseCritical.slice(0,30) };
+  const palletDays = palletDaysList.length ? (palletDaysList.reduce((a,b)=>a+b,0)/palletDaysList.length).toFixed(1) : '—';
+  return { inHouse, avgDays: summaryAvgDays, palletDays, critical, oldest, ages, weeks, criticalPOs: inHouseCritical.slice(0,30) };
 }
 
 // ── LOAD ─────────────────────────────────────────────────────
