@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIC Materials &amp; Batch Tracker</title>
+<style>
+  :root{
+    --bg:#1B1E24;
+    --panel:#242832;
+    --panel-2:#2C313D;
+    --border:#3A4152;
+    --text:#E8EAED;
+    --text-dim:#9AA3B2;
+    --accent:#F2B705;
+    --accent-text:#1B1E24;
+    --danger:#C0392B;
+    --danger-bg:#3A2523;
+    --ok:#3F8F5F;
+    --ok-bg:#1F332A;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-size:17px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  #app{max-width:1100px;margin:0 auto;padding:20px 20px 70px;}
+
+  header.top{margin-bottom:20px;}
+  header.top h1{font-size:26px;letter-spacing:0.2px;margin:0 0 4px;font-weight:800;}
+  header.top p{margin:0;color:var(--text-dim);font-size:15px;}
+
+  nav.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:2px;}
+  nav.tabs button{background:var(--panel);color:var(--text-dim);
+    border:2px solid var(--border);border-radius:8px;
+    font-size:16px;padding:14px 20px;cursor:pointer;
+    font-weight:700;min-height:56px;
+    box-shadow:0 3px 0 0 #14161B;
+    transition:transform .05s, box-shadow .05s, background .1s;}
+  nav.tabs button.active{color:var(--accent-text);background:var(--accent);
+    border-color:var(--accent);box-shadow:0 3px 0 0 #A57C03;}
+  nav.tabs button:hover{color:var(--text);border-color:var(--text-dim);}
+  nav.tabs button.active:hover{color:var(--accent-text);border-color:var(--accent);}
+  nav.tabs button:active{transform:translateY(3px);box-shadow:none;}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    padding:22px;margin-bottom:18px;}
+  .panel h2{font-size:19px;margin:0 0 16px;font-weight:800;}
+  .panel h3{font-size:15px;margin:0 0 10px;color:var(--text-dim);font-weight:700;}
+
+  .grid-btns{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+  .pick-btn{background:var(--panel-2);border:2px solid var(--border);color:var(--text);
+    padding:22px 18px;border-radius:8px;cursor:pointer;font-size:18px;font-weight:700;
+    text-align:left;transition:border-color .1s,transform .06s;min-height:88px;}
+  .pick-btn:hover{border-color:var(--accent);}
+  .pick-btn:active{transform:scale(0.97);background:#343A47;}
+  .pick-btn .sub{display:block;color:var(--text-dim);font-size:13px;font-weight:500;margin-top:5px;}
+
+  .breadcrumb{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px;
+    font-size:15px;color:var(--text-dim);}
+  .breadcrumb .step{background:var(--panel-2);border:1px solid var(--border);border-radius:6px;
+    padding:9px 14px;color:var(--text);font-weight:600;}
+  .breadcrumb .sep{color:var(--text-dim);font-size:18px;}
+  .breadcrumb button.reset{margin-left:auto;background:none;border:2px solid var(--border);
+    color:var(--text-dim);border-radius:6px;padding:10px 16px;cursor:pointer;font-size:14px;
+    font-weight:700;min-height:44px;}
+  .breadcrumb button.reset:hover{color:var(--text);border-color:var(--text-dim);}
+  .breadcrumb button.reset:active{background:var(--panel-2);}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th{text-align:left;color:var(--text-dim);font-weight:700;font-size:13px;
+    padding:9px 10px;border-bottom:1px solid var(--border);}
+  td{padding:11px 10px;border-bottom:1px solid #2E323C;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:4px 9px;border-radius:4px;}
+  .badge.low{background:var(--danger-bg);color:#E88579;}
+  .badge.ok{background:var(--ok-bg);color:#7CC49A;}
+
+  input[type=number], input[type=text], input[type=password], select{
+    background:var(--panel-2);border:2px solid var(--border);color:var(--text);
+    border-radius:6px;padding:12px 12px;font-size:16px;width:100%;min-height:48px;}
+  input[type=number]{width:110px;}
+  label{font-size:14px;color:var(--text-dim);display:block;margin-bottom:6px;font-weight:600;}
+
+  .btn{background:var(--accent);color:var(--accent-text);border:none;border-radius:8px;
+    padding:16px 26px;font-weight:800;font-size:17px;cursor:pointer;min-height:56px;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{transform:scale(0.98);}
+  .btn.secondary{background:none;border:2px solid var(--border);color:var(--text);}
+  .btn.small{padding:9px 14px;font-size:14px;min-height:40px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .ing-row{display:grid;grid-template-columns:1fr 120px 48px;gap:10px;margin-bottom:10px;align-items:center;}
+  .muted{color:var(--text-dim);font-size:14px;}
+  .note{background:#2A2410;border:1px solid #4A4020;color:#D9C15C;font-size:14px;
+    border-radius:6px;padding:12px 14px;margin-top:12px;line-height:1.5;}
+  .error{background:var(--danger-bg);border:1px solid #5a2c26;color:#E88579;font-size:14px;
+    border-radius:6px;padding:12px 14px;margin-bottom:14px;}
+  .confirm-box{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+    padding:18px;margin-top:16px;}
+  .confirm-box ul{margin:10px 0 0;padding-left:20px;}
+  .confirm-box li{font-size:16px;margin-bottom:6px;}
+  .empty{color:var(--text-dim);font-size:15px;padding:26px 0;text-align:center;}
+  .tx-item{border-bottom:1px solid #2E323C;padding:12px 0;}
+  .tx-item:last-child{border-bottom:none;}
+  .tx-head{display:flex;justify-content:space-between;font-size:15px;font-weight:700;}
+  .tx-time{color:var(--text-dim);font-weight:400;font-size:13px;}
+  .tx-detail{color:var(--text-dim);font-size:13px;margin-top:5px;}
+  .settings-mat-row{display:grid;grid-template-columns:1.4fr 100px 100px 90px 80px;gap:10px;
+    align-items:center;padding:9px 0;border-bottom:1px solid #2E323C;font-size:14px;}
+  .settings-mat-row.head{color:var(--text-dim);font-size:12px;font-weight:700;}
+  .save-msg{color:#7CC49A;font-size:13px;margin-left:10px;}
+
+  .pin-overlay{position:fixed;inset:0;background:rgba(10,11,14,0.85);display:flex;
+    align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .pin-box{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:28px;max-width:360px;width:100%;}
+  .pin-box h2{margin:0 0 6px;font-size:20px;}
+  .pin-box p{color:var(--text-dim);font-size:14px;margin:0 0 16px;}
+
+  @media (min-width:900px){
+    .grid-btns{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <h1>PIC Materials &amp; Batch Tracker</h1>
+    <p>Precise Industrial Coatings — floor inventory</p>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <div id="content"></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* ============================= CONFIG / API ============================= */
+
+const API_URL = window.PIC_INVENTORY_API_URL || '';
+
+async function apiGet(){
+  if(!API_URL) throw new Error('NO_URL');
+  const res = await fetch(API_URL);
+  if(!res.ok) throw new Error('Request failed: ' + res.status);
+  return res.json();
+}
+async function apiPost(payload){
+  if(!API_URL) throw new Error('NO_URL');
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+  });
+  if(!res.ok) throw new Error('Request failed: ' + res.status);
+  return res.json();
+}
+
+/* ============================= STATIC DATA ============================= */
+
+const VOLUME_LABELS = { qt:'Quart', gal:'1 Gallon', '5gal':'5 Gallon' };
+
+const PRODUCTS = [
+  { id:'p2500',      name:'2500 (PL-2500)', hasColor:true,  volumes:['qt','gal','5gal'] },
+  { id:'m419',       name:'Mclube 419',     hasColor:false, volumes:['qt','gal'] },
+  { id:'m1800',      name:'Mclube 1800',    hasColor:false, volumes:['qt','gal'] },
+  { id:'m1829',      name:'Mclube 1829',    hasColor:false, volumes:['qt','gal'] },
+  { id:'klubertop',  name:'Klubertop',      hasColor:true,  optionLabel:'Type', volumes:['qt','gal'] },
+  { id:'dianix',     name:'Dianix Red Dye', hasColor:false, volumes:['qt'] },
+  { id:'mac424',     name:'Mclube 424S',    hasColor:false, volumes:['qt'] },
+];
+
+const OPTIONS_BY_PRODUCT = {
+  p2500: {
+    qt: [
+      ['black','Black'],['white','White'],['yellow','Yellow'],['lightpink','Light Pink'],
+      ['purple','Purple'],['brown','Brown'],['mediumblue','Medium Blue'],['orange','Orange'],
+      ['lightgray','Light Gray'],['darkgreen','Dark Green'],['olivegreen','Olive Green'],
+      ['mediumgreen','Medium Green'],['red','Red'],['lightgreen','Light Green'],
+      ['darkpink','Dark Pink'],['elastotechmediumgreen','Elastotech Special Medium Green'],
+      ['mauve','Mauve'],['magenta','Magenta'],['elasticrust','Elastic Rust'],
+      ['burgundy','Burgundy'],
+    ],
+    gal: [
+      ['black','Black'],['yellow','Yellow'],['mediumblue','Medium Blue'],['lightblue','Light Blue'],
+      ['lightgray','Light Gray'],['red','Red'],['pink','Pink'],['darkpink','Dark Pink'],
+      ['mauve','Mauve'],['burgundy','Burgundy'],['darkgray','Dark Gray'],['rust','Rust'],
+      ['brown','Brown'],['orange','Orange'],['darkgreen','Dark Green'],['mediumgreen','Medium Green'],
+      ['lightgreen','Light Green'],['olive','Olive'],['patone272purple','Patone #272 Elastotech Purple'],
+      ['darkpurple','Dark Purple'],['purple','Purple'],['realsealpurple','Real Seal Special Purple'],
+      ['magenta','Magenta'],['elastotecred','ShineTec Red'],['injectecgreen','Injectec Green'],
+      ['darkred','Dark Red'],['white','White'],['clear','Clear'],
+    ],
+    '5gal': [
+      ['clear','Clear'],['darkblue','Dark Blue'],['mediumblue','Medium Blue'],['lightblue','Light Blue'],
+      ['red','Red'],['brown','Brown'],['orange','Orange'],['mediumgreen','Medium Green'],
+      ['darkgreen','Dark Green'],['lightpink','Light Pink'],['darkpink','Dark Pink'],
+      ['purple','Purple'],['darkpurple','Dark Purple'],['lightgray','Light Gray'],['yellow','Yellow'],
+    ],
+  },
+  klubertop: {
+    qt:  [['rubber','Rubber'],['silicone','Silicone']],
+    gal: [['rubber','Rubber'],['silicone','Silicone']],
+  },
+};
+
+/* ============================= STATE ============================= */
+
+let STATE = { materials:[], recipes:{}, transactions:[], loaded:false, loadError:null };
+let VIEW = { tab:'log', wizard:{ product:null, volume:null, color:null }, saveMsg:'', busy:false };
+let AUTH = { unlocked:false, pin:'', pinInput:'', pinError:'' };
+
+const TABS = [
+  ['log','Log a Batch', false],
+  ['custom','Custom Mix', false],
+  ['inventory','Inventory', true],
+  ['history','History', true],
+  ['settings','Settings', true],
+];
+
+const matName = id => (STATE.materials.find(m=>m.id===id)||{}).name || id;
+const matUnit = id => (STATE.materials.find(m=>m.id===id)||{}).unit || '';
+const prodName = id => (PRODUCTS.find(p=>p.id===id)||{}).name || id;
+const colorName = (prodId,vol,id) => { const list = (OPTIONS_BY_PRODUCT[prodId]||{})[vol]||[]; const hit = list.find(c=>c[0]===id); return hit?hit[1]:id; };
+
+/* ============================= RENDER SHELL ============================= */
+
+function renderTabs(){
+  const nav = document.getElementById('tabs');
+  nav.innerHTML = TABS.map(([id,label])=>
+    `<button data-tab="${id}" class="${VIEW.tab===id?'active':''}">${label}</button>`
+  ).join('');
+  nav.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{
+      const [,,gated] = TABS.find(t=>t[0]===b.dataset.tab);
+      if(gated && !AUTH.unlocked){ openPinPrompt(b.dataset.tab); return; }
+      VIEW.tab=b.dataset.tab;
+      if(VIEW.tab==='log'){VIEW.wizard={product:null,volume:null,color:null};}
+      render();
+    };
+  });
+}
+
+function render(){
+  renderTabs();
+  const c = document.getElementById('content');
+  if(!API_URL){
+    c.innerHTML = `<div class="panel"><h2>Setup needed</h2>
+      <p class="muted">This page doesn't have an Apps Script URL configured yet. Open <code>config.js</code> and paste in the Web App URL from the deployed Apps Script project, then reload.</p></div>`;
+    return;
+  }
+  if(STATE.loadError){
+    c.innerHTML = `<div class="panel"><div class="error">Couldn't reach the backend: ${STATE.loadError}</div>
+      <button class="btn secondary" id="retryLoad">Retry</button></div>`;
+    document.getElementById('retryLoad').onclick = refreshState;
+    return;
+  }
+  if(!STATE.loaded){
+    c.innerHTML = `<div class="panel"><div class="empty">Loading…</div></div>`;
+    return;
+  }
+  if(VIEW.tab==='log') c.innerHTML = renderLog();
+  else if(VIEW.tab==='custom') c.innerHTML = renderCustom();
+  else if(VIEW.tab==='inventory') c.innerHTML = renderInventory();
+  else if(VIEW.tab==='history') c.innerHTML = renderHistory();
+  else if(VIEW.tab==='settings') c.innerHTML = renderSettings();
+  attachHandlers();
+  renderPinOverlay();
+}
+
+/* ============================= PIN GATE ============================= */
+
+let pendingTab = null;
+function openPinPrompt(tab){
+  pendingTab = tab;
+  AUTH.pinInput = '';
+  AUTH.pinError = '';
+  renderPinOverlay(true);
+}
+function renderPinOverlay(forceShow){
+  let overlay = document.getElementById('pinOverlay');
+  if(!forceShow && !pendingTab){ if(overlay) overlay.remove(); return; }
+  if(!pendingTab) return;
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'pinOverlay';
+    overlay.className = 'pin-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="pin-box">
+      <h2>Enter PIN</h2>
+      <p>Admin access to Inventory, History and Settings.</p>
+      ${AUTH.pinError ? `<div class="error">${AUTH.pinError}</div>` : ''}
+      <input type="password" id="pinField" inputmode="numeric" placeholder="PIN" autofocus>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="pinSubmit">Unlock</button>
+        <button class="btn secondary" id="pinCancel">Cancel</button>
+      </div>
+    </div>`;
+  const field = document.getElementById('pinField');
+  field.focus();
+  field.onkeydown = (e)=>{ if(e.key==='Enter') document.getElementById('pinSubmit').click(); };
+  document.getElementById('pinSubmit').onclick = async ()=>{
+    const pin = field.value;
+    try{
+      const result = await apiPost({ action:'checkPin', pin });
+      if(result.ok){
+        AUTH.unlocked = true;
+        AUTH.pin = pin;
+        VIEW.tab = pendingTab;
+        pendingTab = null;
+        render();
+      } else {
+        AUTH.pinError = 'Incorrect PIN.';
+        renderPinOverlay(true);
+      }
+    }catch(err){
+      AUTH.pinError = 'Could not reach the server.';
+      renderPinOverlay(true);
+    }
+  };
+  document.getElementById('pinCancel').onclick = ()=>{ pendingTab = null; renderPinOverlay(); };
+}
+
+/* ============================= LOG A BATCH ============================= */
+
+function renderLog(){
+  const w = VIEW.wizard;
+  let breadcrumb = `<div class="breadcrumb">`;
+  breadcrumb += `<span class="step">${w.product?prodName(w.product):'Pick material'}</span>`;
+  if(w.product){
+    breadcrumb += `<span class="sep">›</span><span class="step">${w.volume?VOLUME_LABELS[w.volume]:'Pick volume'}</span>`;
+  }
+  const prod = PRODUCTS.find(p=>p.id===w.product);
+  if(w.product && w.volume && prod && prod.hasColor){
+    const lbl = prod.optionLabel || 'color';
+    breadcrumb += `<span class="sep">›</span><span class="step">${w.color?colorName(w.product,w.volume,w.color):'Pick '+lbl.toLowerCase()}</span>`;
+  }
+  breadcrumb += `<button class="reset" id="resetWizard">Start over</button></div>`;
+
+  let body = '';
+  if(!w.product){
+    body = `<div class="panel"><h2>Step 1 — Material</h2><div class="grid-btns">` +
+      PRODUCTS.map(p=>`<button class="pick-btn" data-pick="product" data-val="${p.id}">${p.name}
+        <span class="sub">${p.hasColor?(p.optionLabel||'color')+' required':'no '+(p.optionLabel||'color').toLowerCase()}</span></button>`).join('') +
+      `</div></div>`;
+  } else if(!w.volume){
+    body = `<div class="panel"><h2>Step 2 — Volume</h2><div class="grid-btns">` +
+      prod.volumes.map(v=>`<button class="pick-btn" data-pick="volume" data-val="${v}">${VOLUME_LABELS[v]}</button>`).join('') +
+      `</div></div>`;
+  } else if(prod.hasColor && !w.color){
+    const list = (OPTIONS_BY_PRODUCT[w.product]||{})[w.volume]||[];
+    body = `<div class="panel"><h2>Step 3 — ${prod.optionLabel||'Color'}</h2><div class="grid-btns">` +
+      list.map(([id,name])=>`<button class="pick-btn" data-pick="color" data-val="${id}">${name}</button>`).join('') +
+      `</div></div>`;
+  } else {
+    const key = `${w.product}|${w.volume}|${prod.hasColor ? w.color : '-'}`;
+    const recipe = STATE.recipes[key];
+    body = renderConfirm(key, recipe, prod, w);
+  }
+
+  return breadcrumb + body;
+}
+
+function renderConfirm(key, recipe, prod, w){
+  if(!recipe){
+    return `<div class="panel"><h2>No recipe found</h2><p class="muted">Nothing is on file for this combination yet. Add it in Settings.</p></div>`;
+  }
+  const label = `${prod.name} — ${VOLUME_LABELS[w.volume]}${prod.hasColor?' — '+colorName(w.product,w.volume,w.color):''}`;
+  const rows = recipe.ing.map(([mid,amt])=>{
+    const mat = STATE.materials.find(m=>m.id===mid);
+    const short = mat && (mat.stock - amt) < mat.threshold;
+    return `<li>${amt} ${matUnit(mid)} ${matName(mid)}${short?' <span class="badge low">will drop below reorder point</span>':''}</li>`;
+  }).join('');
+  const emptyIng = recipe.ing.length===0 ? `<li class="muted">No new raw materials — built entirely from already-mixed batches.</li>` : '';
+  const noteBox = recipe.note ? `<div class="note">${recipe.note}</div>` : '';
+
+  return `<div class="panel">
+    <h2>Confirm batch</h2>
+    <p style="font-size:15px;font-weight:700;margin:0 0 10px;">${label}</p>
+    <div class="confirm-box">
+      <div class="muted">This will deduct from raw inventory:</div>
+      <ul>${rows}${emptyIng}</ul>
+    </div>
+    ${noteBox}
+    <div style="margin-top:16px;" class="row">
+      <button class="btn" id="confirmLog" ${VIEW.busy?'disabled':''}>${VIEW.busy?'Logging…':'Log this batch'}</button>
+      <button class="btn secondary" id="cancelLog">Cancel</button>
+    </div>
+  </div>`;
+}
+
+/* ============================= CUSTOM MIX ============================= */
+
+let customRows = [{material:'', amount:''}];
+let customRef = '';
+
+function renderCustom(){
+  const options = STATE.materials.map(m=>`<option value="${m.id}">${m.name} (${m.unit})</option>`).join('');
+  const rows = customRows.map((r,i)=>`
+    <div class="ing-row">
+      <select data-custom-mat="${i}"><option value="">Select material…</option>${options}</select>
+      <input type="number" min="0" step="any" placeholder="amount" data-custom-amt="${i}" value="${r.amount}">
+      <button class="btn secondary small" data-remove-row="${i}">✕</button>
+    </div>`).join('');
+
+  return `<div class="panel">
+    <h2>Custom / special-order mix</h2>
+    <p class="muted">For one-off colors that aren't in the standard recipes — enter what was actually used.</p>
+    <label>Job / customer reference (optional)</label>
+    <input type="text" id="customRef" value="${customRef}" placeholder="e.g. Job #4021 — Acme Corp">
+    <h3 style="margin-top:16px;">Raw materials used</h3>
+    ${rows}
+    <button class="btn secondary small" id="addRow">+ Add material</button>
+    <div style="margin-top:16px;">
+      <button class="btn" id="logCustom" ${VIEW.busy?'disabled':''}>${VIEW.busy?'Logging…':'Log this mix'}</button>
+    </div>
+  </div>`;
+}
+
+/* ============================= INVENTORY ============================= */
+
+function daysOfSupply(materialId){
+  const now = Date.now();
+  const cutoff = now - 14*24*60*60*1000;
+  let total = 0;
+  STATE.transactions.forEach(tx=>{
+    if(tx.ts < cutoff) return;
+    (tx.ing||[]).forEach(([mid,amt])=>{ if(mid===materialId) total += amt; });
+  });
+  if(total<=0) return null;
+  const perDay = total/14;
+  const mat = STATE.materials.find(m=>m.id===materialId);
+  return Math.round(mat.stock / perDay);
+}
+
+function renderInventory(){
+  const rows = STATE.materials.map(m=>{
+    const low = m.stock < m.threshold;
+    const dos = daysOfSupply(m.id);
+    return `<tr>
+      <td>${m.name}</td>
+      <td>${m.stock.toLocaleString()} ${m.unit}</td>
+      <td>${m.threshold.toLocaleString()} ${m.unit}</td>
+      <td>${dos===null?'<span class="muted">no usage data yet</span>':dos+' days'}</td>
+      <td>${low?'<span class="badge low">Reorder</span>':'<span class="badge ok">OK</span>'}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="panel">
+    <h2>Raw material inventory</h2>
+    <p class="muted">Days-of-supply is estimated from the last 14 days of logged usage. Edit stock levels and thresholds in Settings.</p>
+    <table>
+      <tr><th>Material</th><th>On hand</th><th>Reorder at</th><th>Days of supply</th><th>Status</th></tr>
+      ${rows}
+    </table>
+  </div>`;
+}
+
+/* ============================= HISTORY ============================= */
+
+function renderHistory(){
+  if(STATE.transactions.length===0){
+    return `<div class="panel"><h2>History</h2><div class="empty">No batches logged yet.</div></div>`;
+  }
+  const items = STATE.transactions.map(tx=>{
+    const d = new Date(tx.ts);
+    const ingList = (tx.ing||[]).map(([mid,amt])=>`${amt} ${matUnit(mid)} ${matName(mid)}`).join(', ') || 'no raw materials drawn';
+    return `<div class="tx-item">
+      <div class="tx-head"><span>${tx.label}</span><span class="tx-time">${d.toLocaleString()}</span></div>
+      <div class="tx-detail">${ingList}${tx.ref?` — ref: ${tx.ref}`:''}</div>
+    </div>`;
+  }).join('');
+  return `<div class="panel"><h2>History</h2><p class="muted">Most recent 200 batches.</p>${items}</div>`;
+}
+
+/* ============================= SETTINGS ============================= */
+
+let recipeEditor = { product:null, volume:null, color:null };
+
+function renderSettings(){
+  const matRows = STATE.materials.map((m,i)=>`
+    <div class="settings-mat-row">
+      <span>${m.name} <span class="muted">(${m.unit})</span></span>
+      <input type="number" data-mat-stock="${i}" value="${m.stock}">
+      <input type="number" data-mat-threshold="${i}" value="${m.threshold}">
+      <span class="muted">stock / reorder</span>
+      <button class="btn secondary small" data-save-mat="${i}">Save</button>
+    </div>`).join('');
+
+  return `<div class="panel">
+    <h2>Raw materials — stock &amp; reorder thresholds</h2>
+    <div class="settings-mat-row head"><span>Material</span><span>On hand</span><span>Reorder at</span><span></span><span></span></div>
+    ${matRows}
+    <span class="save-msg" id="saveMsg">${VIEW.saveMsg}</span>
+  </div>
+  <div class="panel">
+    <h2>Edit a recipe</h2>
+    <p class="muted">Pick a material, volume, and type/color to pull up and correct its recipe.</p>
+    ${renderRecipeEditor()}
+  </div>`;
+}
+
+function renderRecipeEditor(){
+  const re = recipeEditor;
+  let out = `<div class="row" style="margin-bottom:14px;">`;
+  out += `<select id="reProduct"><option value="">Material…</option>` +
+    PRODUCTS.map(p=>`<option value="${p.id}" ${re.product===p.id?'selected':''}>${p.name}</option>`).join('') + `</select>`;
+  if(re.product){
+    const prod = PRODUCTS.find(p=>p.id===re.product);
+    out += `<select id="reVolume"><option value="">Volume…</option>` +
+      prod.volumes.map(v=>`<option value="${v}" ${re.volume===v?'selected':''}>${VOLUME_LABELS[v]}</option>`).join('') + `</select>`;
+    if(re.volume && prod.hasColor){
+      const list = (OPTIONS_BY_PRODUCT[re.product]||{})[re.volume]||[];
+      out += `<select id="reColor"><option value="">${prod.optionLabel||'Color'}…</option>` +
+        list.map(([id,name])=>`<option value="${id}" ${re.color===id?'selected':''}>${name}</option>`).join('') + `</select>`;
+    }
+  }
+  out += `</div>`;
+
+  if(re.product && re.volume && (!PRODUCTS.find(p=>p.id===re.product).hasColor || re.color)){
+    const prod = PRODUCTS.find(p=>p.id===re.product);
+    const key = `${re.product}|${re.volume}|${prod.hasColor ? re.color : '-'}`;
+    const recipe = STATE.recipes[key];
+    if(!recipe){
+      out += `<p class="muted">No recipe on file for this combination.</p>`;
+    } else {
+      const ingRows = recipe.ing.map(([mid,amt],idx)=>`
+        <div class="ing-row" style="grid-template-columns:1fr 100px;">
+          <span>${matName(mid)}</span>
+          <input type="number" data-re-idx="${idx}" value="${amt}">
+        </div>`).join('') || '<p class="muted">No raw materials currently listed for this recipe.</p>';
+      out += `<div data-re-key="${key}">${ingRows}
+        ${recipe.note ? `<p class="muted" style="margin-top:8px;">${recipe.note}</p>` : ''}
+        <button class="btn small" id="saveRecipeBtn" style="margin-top:10px;">Save recipe</button>
+      </div>`;
+    }
+  }
+  return out;
+}
+
+/* ============================= HANDLERS ============================= */
+
+function attachHandlers(){
+  const resetBtn = document.getElementById('resetWizard');
+  if(resetBtn) resetBtn.onclick = ()=>{ VIEW.wizard={product:null,volume:null,color:null}; render(); };
+
+  document.querySelectorAll('[data-pick]').forEach(b=>{
+    b.onclick = ()=>{
+      const field = b.dataset.pick, val = b.dataset.val;
+      VIEW.wizard[field] = val;
+      render();
+    };
+  });
+
+  const confirmBtn = document.getElementById('confirmLog');
+  if(confirmBtn) confirmBtn.onclick = async ()=>{
+    const w = VIEW.wizard;
+    const prod = PRODUCTS.find(p=>p.id===w.product);
+    const key = `${w.product}|${w.volume}|${prod.hasColor ? w.color : '-'}`;
+    const recipe = STATE.recipes[key];
+    if(!recipe) return;
+    const label = `${prod.name} — ${VOLUME_LABELS[w.volume]}${prod.hasColor?' — '+colorName(w.product,w.volume,w.color):''}`;
+    VIEW.busy = true; render();
+    try{
+      const result = await apiPost({ action:'logBatch', ing: recipe.ing, label });
+      if(result.ok){
+        STATE.materials = result.materials;
+        STATE.transactions.unshift({ id:'local'+Date.now(), ts:Date.now(), label, ing:recipe.ing, ref:'' });
+        VIEW.wizard = {product:null,volume:null,color:null};
+      }
+    } catch(err){ STATE.loadError = String(err.message||err); }
+    VIEW.busy = false;
+    render();
+  };
+  const cancelBtn = document.getElementById('cancelLog');
+  if(cancelBtn) cancelBtn.onclick = ()=>{ VIEW.wizard={product:null,volume:null,color:null}; render(); };
+
+  // custom mix
+  const customRefInput = document.getElementById('customRef');
+  if(customRefInput) customRefInput.oninput = e=>{ customRef = e.target.value; };
+  document.querySelectorAll('[data-custom-mat]').forEach(sel=>{
+    sel.onchange = e=>{ customRows[+sel.dataset.customMat].material = e.target.value; };
+  });
+  document.querySelectorAll('[data-custom-amt]').forEach(inp=>{
+    inp.oninput = e=>{ customRows[+inp.dataset.customAmt].amount = e.target.value; };
+  });
+  document.querySelectorAll('[data-remove-row]').forEach(b=>{
+    b.onclick = ()=>{ customRows.splice(+b.dataset.removeRow,1); if(customRows.length===0) customRows=[{material:'',amount:''}]; render(); };
+  });
+  const addRowBtn = document.getElementById('addRow');
+  if(addRowBtn) addRowBtn.onclick = ()=>{ customRows.push({material:'',amount:''}); render(); };
+  const logCustomBtn = document.getElementById('logCustom');
+  if(logCustomBtn) logCustomBtn.onclick = async ()=>{
+    const valid = customRows.filter(r=>r.material && r.amount && +r.amount>0);
+    if(valid.length===0) return;
+    const ing = valid.map(r=>[r.material, +r.amount]);
+    VIEW.busy = true; render();
+    try{
+      const result = await apiPost({ action:'customMix', ing, ref: customRef, label:'Custom mix' });
+      if(result.ok){
+        STATE.materials = result.materials;
+        STATE.transactions.unshift({ id:'local'+Date.now(), ts:Date.now(), label:'Custom mix', ing, ref:customRef });
+        customRows = [{material:'',amount:''}]; customRef='';
+      }
+    } catch(err){ STATE.loadError = String(err.message||err); }
+    VIEW.busy = false;
+    render();
+  };
+
+  // settings: material stock/threshold save
+  document.querySelectorAll('[data-save-mat]').forEach(b=>{
+    b.onclick = async ()=>{
+      const i = +b.dataset.saveMat;
+      const stockInput = document.querySelector(`[data-mat-stock="${i}"]`);
+      const thInput = document.querySelector(`[data-mat-threshold="${i}"]`);
+      const mat = STATE.materials[i];
+      try{
+        await apiPost({ action:'updateMaterial', pin:AUTH.pin, id:mat.id, stock:+stockInput.value, threshold:+thInput.value });
+        mat.stock = +stockInput.value; mat.threshold = +thInput.value;
+        VIEW.saveMsg = 'Saved.';
+      } catch(err){ VIEW.saveMsg = 'Could not save.'; }
+      render();
+      setTimeout(()=>{ VIEW.saveMsg=''; render(); },1500);
+    };
+  });
+
+  // recipe editor selects
+  const reProduct = document.getElementById('reProduct');
+  if(reProduct) reProduct.onchange = e=>{ recipeEditor = { product:e.target.value||null, volume:null, color:null }; render(); };
+  const reVolume = document.getElementById('reVolume');
+  if(reVolume) reVolume.onchange = e=>{ recipeEditor.volume = e.target.value||null; recipeEditor.color = null; render(); };
+  const reColor = document.getElementById('reColor');
+  if(reColor) reColor.onchange = e=>{ recipeEditor.color = e.target.value||null; render(); };
+
+  const saveRecipeBtn = document.getElementById('saveRecipeBtn');
+  if(saveRecipeBtn) saveRecipeBtn.onclick = async ()=>{
+    const container = saveRecipeBtn.closest('[data-re-key]');
+    const key = container.dataset.reKey;
+    const recipe = STATE.recipes[key];
+    const inputs = container.querySelectorAll('[data-re-idx]');
+    inputs.forEach(inp=>{ recipe.ing[+inp.dataset.reIdx][1] = +inp.value; });
+    try{
+      await apiPost({ action:'updateRecipe', pin:AUTH.pin, key, ing: recipe.ing });
+      VIEW.saveMsg = 'Recipe updated.';
+    } catch(err){ VIEW.saveMsg = 'Could not save.'; }
+    render();
+    setTimeout(()=>{ VIEW.saveMsg=''; render(); },1500);
+  };
+}
+
+/* ============================= INIT ============================= */
+
+async function refreshState(){
+  STATE.loadError = null;
+  render();
+  try{
+    const data = await apiGet();
+    STATE.materials = data.materials;
+    STATE.recipes = data.recipes;
+    STATE.transactions = data.transactions;
+    STATE.loaded = true;
+  } catch(err){
+    STATE.loadError = err.message === 'NO_URL' ? 'no backend URL configured' : String(err.message || err);
+  }
+  render();
+}
+
+refreshState();
+</script>
+</body>
+</html>
