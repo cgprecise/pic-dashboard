@@ -1,20 +1,20 @@
 {
-  "asOf": "Oct 7, 2026",
-  "accepted": 99,
+  "asOf": "Oct 8, 2026",
+  "accepted": 88,
   "colors": {
-    "Blue": 46,
-    "Orange": 14,
-    "Clear": 11,
-    "Yellow": 8,
-    "Red": 7,
-    "Green": 6,
-    "White": 4,
-    "Pink": 2,
-    "Purple": 1
+    "Blue": 45,
+    "Orange": 13,
+    "Red": 8,
+    "Green": 8,
+    "Clear": 6,
+    "Yellow": 5,
+    "Pink": 3,
+    "White": 3,
+    "Black": 1
   },
   "materials": {
-    "McLube": 5,
     "Emralon 310": 5,
+    "McLube": 3,
     "Klübertop": 1
   }
 }
