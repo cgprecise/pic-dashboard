@@ -138,6 +138,9 @@
   .age-bg { flex: 1; height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; overflow: hidden; }
   .age-fill { height: 100%; border-radius: 5px; transition: width 1s ease; }
   .age-count { font-size: 16px; font-weight: 700; width: 36px; text-align: right; }
+  .cust-head { margin-top: 20px; margin-bottom: 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display:flex; justify-content:space-between; align-items:baseline; }
+  .cust-head .cust-sub { font-size: 11px; letter-spacing: 0; text-transform: none; font-weight: 500; }
+  .cust-label { width: 150px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-size: 14px; }
 
   /* Accepted pipeline tile (combined color + material bars) */
   .pipe-grid { margin-top:14px; flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:repeat(8,1fr); grid-auto-flow:column; gap:2px 34px; overflow:hidden; }
@@ -344,6 +347,8 @@
         <div class="age-count" style="color:var(--red)" id="cnt4">35</div>
       </div>
     </div>
+    <div class="cust-head"><span>In-house orders by customer</span><span class="cust-sub" id="custAsOf">as of —</span></div>
+    <div class="age-bars" id="custBars"></div>
   </div>
 
   <div class="tile purple wide" id="pipelineTile">
@@ -486,6 +491,21 @@ async function loadPipeline() {
   }
 }
 loadPipeline();
+
+const CUST_FALLBACK = { asOf: '—', rows: [ { name:'Precix', count:0, pinned:true }, { name:'Trelleborg', count:0, pinned:true } ]};
+function renderCustomers(c) {
+  const rows = (c && c.rows && c.rows.length) ? c.rows : CUST_FALLBACK.rows;
+  document.getElementById('custAsOf').textContent = 'as of ' + ((c && c.asOf) || '—');
+  const max = Math.max.apply(null, rows.map(r => r.count).concat([1]));
+  document.getElementById('custBars').innerHTML = rows.map(r =>
+    '<div class="age-row"><div class="cust-label">' + r.name + '</div><div class="age-bg"><div class="age-fill" style="width:' + Math.max(4,Math.round(r.count/max*100)) + '%;background:var(--purple);"></div></div><div class="age-count" style="color:var(--purple)">' + r.count + '</div></div>'
+  ).join('');
+}
+async function loadCustomers() {
+  try { const r = await fetch('customers.json?_t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error('x'); renderCustomers(await r.json()); }
+  catch (e) { renderCustomers(CUST_FALLBACK); }
+}
+loadCustomers();
 
 // ── RENDER ───────────────────────────────────────────────────
 function render(d) {
