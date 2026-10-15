@@ -301,13 +301,13 @@
   <div class="tile blue">
     <div class="tile-label">Avg turnaround</div>
     <div class="tile-value blue" id="v-avgdays">10.1</div>
-    <div class="tile-sub" id="v-avgdays-sub">days &nbsp;·&nbsp; 7-day goal</div>
+    <div class="tile-sub" id="v-avgdays-sub">days &nbsp;·&nbsp; 30d avg, 7-day goal</div>
   </div>
 
   <div class="tile purple">
     <div class="tile-label">Pallet Turnaround Time</div>
     <div class="tile-value purple" id="v-pallet">—</div>
-    <div class="tile-sub" id="v-pallet-sub">days &nbsp;·&nbsp; completed pallet orders</div>
+    <div class="tile-sub" id="v-pallet-sub">days &nbsp;·&nbsp; 30d avg, completed pallets</div>
   </div>
 
   <div class="tile red">
@@ -511,7 +511,7 @@ loadCustomers();
 function render(d) {
   document.getElementById('v-inhouse').textContent = d.inHouse;
   document.getElementById('v-avgdays').textContent = d.avgDays;
-  document.getElementById('v-avgdays-sub').textContent = `days · 7-day goal  ${parseFloat(d.avgDays) <= 7 ? '✓' : '▲ over goal'}`;
+  document.getElementById('v-avgdays-sub').textContent = `days · 30d avg, 7-day goal  ${parseFloat(d.avgDays) <= 7 ? '✓' : '▲ over goal'}`;
   document.getElementById('v-pallet').textContent = d.palletDays;
   document.getElementById('v-oldest').textContent = d.oldest;
   document.getElementById('v-critical').textContent = d.critical;
@@ -558,6 +558,10 @@ function processCSV(rows, rawRows) {
   const parseDate = s => { try { return new Date(s); } catch(e) { return null; } };
   const today = new Date();
   const daysList = [], palletDaysList = [], weekMap = {}, inHouseCritical = [];
+  const turnList = [];   // trailing-30d business-day turnaround (Ship - Arrival), non-Long-Term
+  const palletTurnList = [];   // trailing-30d business-day turnaround for Long-Term (pallet) orders
+  const busDays = (a,b) => { if(!a||!b||b<a) return null; let d=0; const c=new Date(a); c.setHours(0,0,0,0); const e=new Date(b); e.setHours(0,0,0,0); while(c<e){ c.setDate(c.getDate()+1); const w=c.getDay(); if(w!==0&&w!==6) d++; } return d; };
+  const turnCutoff = new Date(today.getTime() - 30*86400000);
   let inHouse = 0, critical = 0, oldest = 0;
   const ages = { a:0, b:0, c:0, d:0 };
 
@@ -575,6 +579,28 @@ function processCSV(rows, rawRows) {
 
     if (!longTerm && !isNaN(days)) daysList.push(days);   // avg turnaround skips Long Term
     if (longTerm && !isNaN(days)) palletDaysList.push(days);   // pallet turnaround = Long Term only (days set only when shipped)
+
+    // Pallet turnaround (fresh): business days Arrival->Ship for LONG-TERM orders shipped in the
+    // last 30 days. Same reason as avg turnaround: the sheet "Days in House" column freezes past a
+    // fixed row, so recent pallet ships were being dropped and the tile sat on stale data.
+    if (longTerm && shipStr) {
+      const pShipD = parseDate(shipStr);
+      if (pShipD && !isNaN(pShipD) && pShipD >= turnCutoff) {
+        const pbd = busDays(arr, pShipD);
+        if (pbd !== null) palletTurnList.push(pbd);
+      }
+    }
+
+    // Avg turnaround = business days Arrival->Ship for non-Long-Term orders shipped in the last 30
+    // days. Computed here, NOT from the sheet "Days in House" column: that formula stops at a fixed
+    // row so recent ships are blank, which froze this tile. Ship Date present = shipped.
+    if (!longTerm && shipStr) {
+      const shipD = parseDate(shipStr);
+      if (shipD && !isNaN(shipD) && shipD >= turnCutoff) {
+        const bd = busDays(arr, shipD);
+        if (bd !== null) turnList.push(bd);
+      }
+    }
 
     const monday = new Date(arr);
     monday.setDate(arr.getDate() - arr.getDay() + (arr.getDay()===0?-6:1));
@@ -600,7 +626,7 @@ function processCSV(rows, rawRows) {
   // fresh here (identical method to Pallet Turnaround). We deliberately do NOT read the
   // sheet's col-I AVERAGEIF cell any more: its fixed row range had fallen behind the data
   // and was reading high (6.8 vs the true 6.5). Fresh computation stays accurate as rows grow.
-  const summaryAvgDays = daysList.length ? (daysList.reduce((a,b)=>a+b,0)/daysList.length).toFixed(1) : '—';
+  const summaryAvgDays = turnList.length ? (turnList.reduce((a,b)=>a+b,0)/turnList.length).toFixed(1) : '—';
 
   const weekKeys = Object.keys(weekMap).sort((a,b)=>weekMap[a].date-weekMap[b].date);
   const weeks = weekKeys.map(k => ({
@@ -610,7 +636,7 @@ function processCSV(rows, rawRows) {
   }));
   if (weeks.length) weeks[weeks.length-1].rate = null;   // current week still in progress
 
-  const palletDays = palletDaysList.length ? (palletDaysList.reduce((a,b)=>a+b,0)/palletDaysList.length).toFixed(1) : '—';
+  const palletDays = palletTurnList.length ? (palletTurnList.reduce((a,b)=>a+b,0)/palletTurnList.length).toFixed(1) : '—';
   return { inHouse, avgDays: summaryAvgDays, palletDays, critical, oldest, ages, weeks, criticalPOs: inHouseCritical.slice(0,30) };
 }
 
