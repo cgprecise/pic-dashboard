@@ -1,6 +1,6 @@
 {
-  "asOf": "Oct 16, 2026",
-  "inHouseTotal": 64,
+  "asOf": "Oct 17, 2026",
+  "inHouseTotal": 57,
   "rows": [
     {
       "name": "Precix",
@@ -9,12 +9,12 @@
     },
     {
       "name": "Trelleborg",
-      "count": 8,
+      "count": 7,
       "pinned": true
     },
     {
       "name": "Fusion",
-      "count": 9,
+      "count": 6,
       "pinned": false
     },
     {
