@@ -1,15 +1,15 @@
 {
-  "asOf": "Oct 20, 2026",
-  "inHouseTotal": 83,
+  "asOf": "Oct 21, 2026",
+  "inHouseTotal": 89,
   "rows": [
     {
       "name": "Precix",
-      "count": 22,
+      "count": 31,
       "pinned": true
     },
     {
       "name": "Trelleborg",
-      "count": 6,
+      "count": 5,
       "pinned": true
     },
     {
@@ -18,7 +18,7 @@
       "pinned": false
     },
     {
-      "name": "Buckeye Rubber & Packing",
+      "name": "Injectec",
       "count": 4,
       "pinned": false
     }
