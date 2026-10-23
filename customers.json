@@ -1,25 +1,25 @@
 {
-  "asOf": "Oct 21, 2026",
-  "inHouseTotal": 89,
+  "asOf": "Oct 23, 2026",
+  "inHouseTotal": 86,
   "rows": [
     {
       "name": "Precix",
-      "count": 31,
+      "count": 23,
       "pinned": true
     },
     {
       "name": "Trelleborg",
-      "count": 5,
+      "count": 7,
       "pinned": true
     },
     {
-      "name": "Fusion",
-      "count": 6,
+      "name": "R.L. Hudson",
+      "count": 7,
       "pinned": false
     },
     {
-      "name": "Injectec",
-      "count": 4,
+      "name": "Fusion",
+      "count": 5,
       "pinned": false
     }
   ]
