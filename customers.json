@@ -1,20 +1,20 @@
 {
-  "asOf": "Oct 23, 2026",
-  "inHouseTotal": 86,
+  "asOf": "Oct 24, 2026",
+  "inHouseTotal": 81,
   "rows": [
     {
       "name": "Precix",
-      "count": 23,
+      "count": 15,
       "pinned": true
     },
     {
       "name": "Trelleborg",
-      "count": 7,
+      "count": 6,
       "pinned": true
     },
     {
       "name": "R.L. Hudson",
-      "count": 7,
+      "count": 9,
       "pinned": false
     },
     {
