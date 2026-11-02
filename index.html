@@ -307,7 +307,7 @@
   <div class="tile purple">
     <div class="tile-label">Pallet Turnaround Time</div>
     <div class="tile-value purple" id="v-pallet">—</div>
-    <div class="tile-sub" id="v-pallet-sub">days &nbsp;·&nbsp; 30d avg, completed pallets</div>
+    <div class="tile-sub" id="v-pallet-sub">days &nbsp;·&nbsp; completed pallets</div>
   </div>
 
   <div class="tile red">
@@ -562,6 +562,7 @@ function processCSV(rows, rawRows) {
   const palletTurnList = [];   // trailing-30d business-day turnaround for Long-Term (pallet) orders
   const busDays = (a,b) => { if(!a||!b||b<a) return null; let d=0; const c=new Date(a); c.setHours(0,0,0,0); const e=new Date(b); e.setHours(0,0,0,0); while(c<e){ c.setDate(c.getDate()+1); const w=c.getDay(); if(w!==0&&w!==6) d++; } return d; };
   const turnCutoff = new Date(today.getTime() - 30*86400000);
+  const palletCutoff = new Date(today.getTime() - 60*86400000);   // pallets: wider 60d window (lumpy category)
   let inHouse = 0, critical = 0, oldest = 0;
   const ages = { a:0, b:0, c:0, d:0 };
 
@@ -580,14 +581,15 @@ function processCSV(rows, rawRows) {
     if (!longTerm && !isNaN(days)) daysList.push(days);   // avg turnaround skips Long Term
     if (longTerm && !isNaN(days)) palletDaysList.push(days);   // pallet turnaround = Long Term only (days set only when shipped)
 
-    // Pallet turnaround (fresh): business days Arrival->Ship for LONG-TERM orders shipped in the
-    // last 30 days. Same reason as avg turnaround: the sheet "Days in House" column freezes past a
-    // fixed row, so recent pallet ships were being dropped and the tile sat on stale data.
+    // Pallet turnaround: mean business days Arrival->Ship for LONG-TERM orders shipped in the last
+    // 60 days, EXCLUDING any held >25 business days. Those long-held ones are staged "partial every
+    // 30 days" releases and material-hold orders that sit by design and would skew the average.
+    // Computed here, not from the sheet "Days in House" column (which freezes past a fixed row).
     if (longTerm && shipStr) {
       const pShipD = parseDate(shipStr);
-      if (pShipD && !isNaN(pShipD) && pShipD >= turnCutoff) {
+      if (pShipD && !isNaN(pShipD) && pShipD >= palletCutoff) {
         const pbd = busDays(arr, pShipD);
-        if (pbd !== null) palletTurnList.push(pbd);
+        if (pbd !== null && pbd <= 25) palletTurnList.push(pbd);   // exclude staged / material-hold
       }
     }
 
