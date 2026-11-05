@@ -1,25 +1,25 @@
 {
-  "asOf": "Nov 4, 2026",
-  "inHouseTotal": 102,
+  "asOf": "Nov 5, 2026",
+  "inHouseTotal": 94,
   "rows": [
     {
       "name": "Precix",
-      "count": 18,
+      "count": 17,
       "pinned": true
     },
     {
       "name": "Trelleborg",
-      "count": 9,
-      "pinned": true
-    },
-    {
-      "name": "Elastotech Southwest",
       "count": 8,
-      "pinned": false
+      "pinned": true
     },
     {
       "name": "Continental International",
       "count": 6,
+      "pinned": false
+    },
+    {
+      "name": "Freudenberg",
+      "count": 5,
       "pinned": false
     }
   ]
