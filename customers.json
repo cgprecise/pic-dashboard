@@ -1,15 +1,15 @@
 {
-  "asOf": "Nov 5, 2026",
-  "inHouseTotal": 94,
+  "asOf": "Nov 6, 2026",
+  "inHouseTotal": 101,
   "rows": [
     {
       "name": "Precix",
-      "count": 17,
+      "count": 11,
       "pinned": true
     },
     {
       "name": "Trelleborg",
-      "count": 8,
+      "count": 14,
       "pinned": true
     },
     {
@@ -18,7 +18,7 @@
       "pinned": false
     },
     {
-      "name": "Freudenberg",
+      "name": "Boyd Corporation",
       "count": 5,
       "pinned": false
     }
