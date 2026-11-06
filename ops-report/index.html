@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Ops Report</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --ink:#1c2430; --muted:#667085; --line:#e2e5ea; --accent:#1f4e79; --warn:#b42318; --ok:#067647; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  header { background:var(--accent); color:#fff; padding:16px 20px; }
+  header h1 { margin:0; font-size:20px; }
+  header div { opacity:.85; font-size:14px; }
+  main { max-width:760px; margin:0 auto; padding:16px; }
+  .tabs { display:flex; gap:8px; margin-bottom:12px; }
+  .tabs button { flex:1; padding:10px; border:1px solid var(--line); background:#fff; border-radius:8px; font-size:15px; cursor:pointer; }
+  .tabs button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+  section h2 { margin:0 0 4px; font-size:17px; }
+  section p.hint { margin:0 0 10px; color:var(--muted); font-size:14px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:8px 0 2px; }
+  input[type=text], input[type=date], select, textarea { width:100%; padding:9px; border:1px solid var(--line); border-radius:6px; font:inherit; background:#fff; }
+  textarea { min-height:64px; resize:vertical; }
+  .row { border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; background:#fafbfc; }
+  .row .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .row .head { font-weight:600; margin-bottom:6px; }
+  .tag { font-size:12px; padding:2px 7px; border-radius:99px; background:#eef2f7; color:var(--muted); margin-left:6px; }
+  .tag.warn { background:#fee4e2; color:var(--warn); }
+  button.add, button.rm { border:1px dashed var(--accent); color:var(--accent); background:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:14px; }
+  button.rm { border-style:solid; border-color:var(--line); color:var(--muted); padding:4px 8px; font-size:12px; float:right; }
+  button.submit { width:100%; padding:14px; font-size:17px; background:var(--accent); color:#fff; border:0; border-radius:10px; cursor:pointer; }
+  button.submit:disabled { opacity:.5; }
+  #msg { margin:12px 0; padding:12px; border-radius:8px; display:none; }
+  #msg.ok { display:block; background:#d1fadf; color:var(--ok); }
+  #msg.err { display:block; background:#fee4e2; color:var(--warn); }
+  .hide { display:none; }
+  @media (max-width:520px){ .row .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Daily Ops Report</h1>
+  <div id="sub"></div>
+</header>
+<main>
+  <div class="tabs">
+    <button id="tabDaily" class="on">Daily (end of day)</button>
+    <button id="tabWeekly">Weekly (Friday)</button>
+  </div>
+  <div id="msg"></div>
+
+  <!-- DAILY -->
+  <div id="daily">
+    <section id="carriedSec" class="hide">
+      <h2>Carried over from before</h2>
+      <p class="hint">Every open item needs an answer. Nothing drops off without a reason.</p>
+      <div id="carried"></div>
+    </section>
+
+    <section>
+      <h2>Requests from <span class="boss"></span></h2>
+      <p class="hint">Anything asked of you verbally or by text since last report. Date it.</p>
+      <div id="asks"></div>
+      <button class="add" onclick="addAsk()">+ Add request</button>
+    </section>
+
+    <section>
+      <h2>Short-term (today / this week)</h2>
+      <div id="shorts"></div>
+      <button class="add" onclick="addShort()">+ Add task</button>
+    </section>
+
+    <section>
+      <h2>Long-term (ongoing)</h2>
+      <p class="hint">Projects and goals with no immediate deadline. Say where each stands and the next checkpoint.</p>
+      <div id="longs"></div>
+      <button class="add" onclick="addLong()">+ Add item</button>
+    </section>
+
+    <section>
+      <h2>Today</h2>
+      <label>What got done today</label>
+      <textarea id="done"></textarea>
+      <label>Attendance / people issues (no-shows, late, appointments)</label>
+      <textarea id="people"></textarea>
+      <label>Customer contact today</label>
+      <textarea id="customers"></textarea>
+      <label>Blocked or needs a decision from <span class="boss"></span></label>
+      <textarea id="blockers"></textarea>
+    </section>
+    <button class="submit" id="submitDaily" onclick="submitDaily()">Submit daily report</button>
+  </div>
+
+  <!-- WEEKLY -->
+  <div id="weekly" class="hide">
+    <section>
+      <h2>Week in review</h2>
+      <label>What got finished this week</label>
+      <textarea id="w_done"></textarea>
+      <label>What slipped, and why</label>
+      <textarea id="w_slipped"></textarea>
+      <label>Customer outreach / opportunities worked</label>
+      <textarea id="w_customers"></textarea>
+      <label>People: attendance, performance, coverage concerns</label>
+      <textarea id="w_people"></textarea>
+    </section>
+    <section>
+      <h2>Next week: top priorities, in order</h2>
+      <p class="hint">Rank them. One line each on why it ranks where it does. This is the part that shows your thinking.</p>
+      <div id="prios"></div>
+      <button class="add" onclick="addPrio()">+ Add priority</button>
+    </section>
+    <section>
+      <h2>Risks</h2>
+      <label>What could go wrong next week that nobody has asked about yet</label>
+      <textarea id="w_risks"></textarea>
+    </section>
+    <button class="submit" id="submitWeekly" onclick="submitWeekly()">Submit weekly report</button>
+  </div>
+</main>
+
+<script>
+/* ============ PER-BUSINESS CONFIG: the only block that changes between businesses ============ */
+const CONFIG = {
+  business: "pic",                       // short id, used in data keys
+  businessName: "Precise Industrial Coatings",
+  reporter: "Jeremy",
+  boss: "Chris",
+  timezone: "America/New_York",
+  submitUrl: "https://hook.us2.make.com/mflll7k57vva005wkq0vt1hd2jqu7ztr",
+  loadUrl:   "https://hook.us2.make.com/kkrf5jlfq6h2zv1eb5mptbtwewypl1ph",
+  key: "c5d0c652628cf1895e1b3556",
+  staleAfterDays: 3                      // open items flagged in the email after this many days
+};
+/* ================================================================================================ */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todayStr = () => new Date().toLocaleDateString("en-CA", { timeZone: CONFIG.timezone });
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+let carried = [];      // open items loaded from last submission
+let uid = 0;
+
+document.title = CONFIG.businessName + " - Daily Ops Report";
+$("title").textContent = CONFIG.businessName + " - Ops Report";
+$("sub").textContent = CONFIG.reporter + " | " + new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", timeZone: CONFIG.timezone });
+document.querySelectorAll(".boss").forEach(e => e.textContent = CONFIG.boss);
+
+$("tabDaily").onclick = () => tab(true);
+$("tabWeekly").onclick = () => tab(false);
+function tab(d) {
+  $("daily").classList.toggle("hide", !d); $("weekly").classList.toggle("hide", d);
+  $("tabDaily").classList.toggle("on", d); $("tabWeekly").classList.toggle("on", !d);
+  msg("", "");
+}
+function msg(text, cls) { const m = $("msg"); m.textContent = text; m.className = cls || ""; }
+
+/* ---------- dynamic rows ---------- */
+function rowHtml(kind, id) {
+  if (kind === "ask") return `
+    <div class="row" data-kind="ask" id="r${id}"><button class="rm" onclick="this.parentNode.remove()">remove</button>
+      <label>Request</label><input type="text" class="f-text">
+      <div class="grid"><div><label>Date asked</label><input type="date" class="f-asked" value="${todayStr()}"></div>
+      <div><label>Status</label><select class="f-status"><option>not started</option><option>in progress</option><option>done</option></select></div></div></div>`;
+  if (kind === "short") return `
+    <div class="row" data-kind="short" id="r${id}"><button class="rm" onclick="this.parentNode.remove()">remove</button>
+      <label>Task</label><input type="text" class="f-text">
+      <div class="grid"><div><label>Due</label><input type="date" class="f-due"></div>
+      <div><label>Status</label><select class="f-status"><option>not started</option><option>in progress</option><option>done</option></select></div></div>
+      <label>Blocker (if any)</label><input type="text" class="f-note"></div>`;
+  if (kind === "long") return `
+    <div class="row" data-kind="long" id="r${id}"><button class="rm" onclick="this.parentNode.remove()">remove</button>
+      <label>Item</label><input type="text" class="f-text">
+      <label>Where it stands</label><input type="text" class="f-note">
+      <label>Next checkpoint</label><input type="date" class="f-due"></div>`;
+  if (kind === "prio") return `
+    <div class="row" data-kind="prio" id="r${id}"><button class="rm" onclick="this.parentNode.remove()">remove</button>
+      <label>Priority</label><input type="text" class="f-text">
+      <label>Why this, why now</label><input type="text" class="f-note"></div>`;
+}
+function add(containerId, kind) { const id = ++uid; $(containerId).insertAdjacentHTML("beforeend", rowHtml(kind, id)); }
+function addAsk() { add("asks", "ask"); } function addShort() { add("shorts", "short"); }
+function addLong() { add("longs", "long"); } function addPrio() { add("prios", "prio"); }
+function readRows(containerId) {
+  return [...$(containerId).querySelectorAll(".row")].map(r => {
+    const g = c => (r.querySelector(c) || {}).value || "";
+    return { kind: r.dataset.kind, text: g(".f-text").trim(), due: g(".f-due"), status: g(".f-status"), note: g(".f-note").trim(), asked: g(".f-asked") };
+  }).filter(x => x.text);
+}
+
+/* ---------- carried-over items ---------- */
+async function loadCarried() {
+  try {
+    const r = await fetch(CONFIG.loadUrl + "?business=" + encodeURIComponent(CONFIG.business) + "&key=" + encodeURIComponent(CONFIG.key));
+    const txt = await r.text();
+    carried = JSON.parse(txt || "[]");
+    if (!Array.isArray(carried)) carried = [];
+  } catch (e) {
+    carried = null;
+    msg("Could not load your open items. Do not submit until this loads. Refresh, and tell " + CONFIG.boss + " if it keeps happening.", "err");
+    $("submitDaily").disabled = true;
+    return;
+  }
+  if (carried.length) {
+    $("carriedSec").classList.remove("hide");
+    $("carried").innerHTML = carried.map((it, i) => {
+      const age = daysBetween(it.added || todayStr(), todayStr());
+      return `<div class="row" data-i="${i}">
+        <div class="head">${esc(it.text)}<span class="tag">${esc(it.kind)}</span>${age >= CONFIG.staleAfterDays ? `<span class="tag warn">${age} days open</span>` : ""}</div>
+        <div class="grid"><div><label>Answer</label>
+          <select class="c-status"><option value="">choose...</option><option value="done">Done</option><option value="open">Still open</option><option value="dropped">Dropped</option></select></div>
+          <div><label>New due date (if still open)</label><input type="date" class="c-due" value="${esc(it.due || "")}"></div></div>
+        <label>Note / reason (required if dropped or still open past its date)</label><input type="text" class="c-note"></div>`;
+    }).join("");
+  }
+}
+
+/* ---------- build email HTML (the pretty part) ---------- */
+function section(title, color, inner) {
+  return `<tr><td style="padding:18px 24px 4px"><div style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:${color}">${title}</div></td></tr>
+          <tr><td style="padding:4px 24px 8px">${inner}</td></tr>`;
+}
+function bullets(items) {
+  if (!items.length) return `<div style="color:#98a2b3;font-size:14px">None reported</div>`;
+  return `<table width="100%" cellpadding="0" cellspacing="0">` + items.map(i =>
+    `<tr><td style="padding:7px 0;border-bottom:1px solid #eef0f3;font-size:14px;color:#1c2430">${i}</td></tr>`).join("") + `</table>`;
+}
+function para(t) { return t ? `<div style="font-size:14px;color:#1c2430;white-space:pre-wrap">${esc(t)}</div>` : `<div style="color:#98a2b3;font-size:14px">Nothing reported</div>`; }
+function pill(t, bg, fg) { return `<span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:${bg};color:${fg};margin-left:6px">${esc(t)}</span>`; }
+function wrap(title, subtitle, flagsHtml, body) {
+  return `<div style="background:#f4f5f7;padding:20px 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <table align="center" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2e5ea">
+    <tr><td style="background:#1f4e79;padding:20px 24px;color:#fff"><div style="font-size:20px;font-weight:700">${esc(title)}</div><div style="font-size:13px;opacity:.85;margin-top:2px">${esc(subtitle)}</div></td></tr>
+    ${flagsHtml}${body}
+    <tr><td style="padding:18px 24px;color:#98a2b3;font-size:12px">${esc(CONFIG.businessName)} | submitted by ${esc(CONFIG.reporter)}</td></tr>
+  </table></div>`;
+}
+function flagBlock(flags) {
+  if (!flags.length) return `<tr><td style="padding:14px 24px 0"><div style="background:#d1fadf;color:#067647;border-radius:8px;padding:10px 14px;font-size:14px">No flags. Nothing overdue, stale, or blocked.</div></td></tr>`;
+  return `<tr><td style="padding:14px 24px 0"><div style="background:#fee4e2;color:#b42318;border-radius:8px;padding:10px 14px;font-size:14px"><b>Needs your attention (${flags.length})</b><ul style="margin:6px 0 0 18px;padding:0">${flags.map(f => `<li>${f}</li>`).join("")}</ul></div></td></tr>`;
+}
+
+/* ---------- submit daily ---------- */
+async function submitDaily() {
+  if (carried === null) return;
+  const today = todayStr(), flags = [];
+  const carriedOut = [], stillOpen = [], closed = [];
+
+  // 1. every carried item must be answered
+  const cards = [...$("carried").querySelectorAll(".row")];
+  for (const c of cards) {
+    const it = carried[+c.dataset.i], st = c.querySelector(".c-status").value, note = c.querySelector(".c-note").value.trim(), due = c.querySelector(".c-due").value;
+    if (!st) return msg("Answer every carried-over item before submitting: \"" + it.text + "\"", "err");
+    if ((st === "dropped" || st === "open") && !note) return msg("Add a note for: \"" + it.text + "\"", "err");
+    const age = daysBetween(it.added || today, today);
+    if (st === "done") closed.push({ ...it, note });
+    else if (st === "dropped") closed.push({ ...it, note, dropped: true });
+    else { const kept = { ...it, due, lastNote: note }; stillOpen.push(kept); if (age >= CONFIG.staleAfterDays) flags.push(`<b>${esc(it.text)}</b> has been open ${age} days. ${esc(note)}`); if (due && due < today) flags.push(`<b>${esc(it.text)}</b> is past its due date (${esc(due)}).`); }
+    if (st === "dropped") flags.push(`Dropped: <b>${esc(it.text)}</b>. Reason: ${esc(note)}`);
+  }
+
+  // 2. new items
+  const asks = readRows("asks"), shorts = readRows("shorts"), longs = readRows("longs");
+  const blockers = $("blockers").value.trim();
+  if (blockers) flags.push("Blocked / needs your decision: " + esc(blockers));
+  shorts.forEach(s => { if (s.status !== "done" && s.due && s.due < today) flags.push(`<b>${esc(s.text)}</b> is past due (${esc(s.due)}).`); if (s.note) flags.push(`<b>${esc(s.text)}</b> blocked: ${esc(s.note)}`); });
+  asks.forEach(a => { const age = daysBetween(a.asked || today, today); if (a.status !== "done" && age >= 2) flags.push(`Request from ${esc(CONFIG.boss)} (${esc(a.asked)}) still ${esc(a.status)}: <b>${esc(a.text)}</b>`); });
+
+  // 3. new open list = carried-still-open + new items not done
+  const fresh = [...asks.map(a => ({ ...a, kind: "request" })), ...shorts.map(s => ({ ...s, kind: "short-term" })), ...longs.map(l => ({ ...l, kind: "long-term" }))]
+    .filter(x => x.status !== "done").map(x => ({ id: today + "-" + Math.random().toString(36).slice(2, 7), text: x.text, kind: x.kind, due: x.due || "", added: x.asked || today }));
+  const openList = [...stillOpen.map(({ lastNote, ...k }) => k), ...fresh];
+
+  // 4. email body
+  const rowsAsk = asks.map(a => `<b>${esc(a.text)}</b> ${pill(a.status, a.status === "done" ? "#d1fadf" : "#fef0c7", a.status === "done" ? "#067647" : "#93370d")}<div style="color:#667085;font-size:12px">asked ${esc(a.asked)}</div>`);
+  const rowsShort = shorts.map(s => `<b>${esc(s.text)}</b> ${pill(s.status, s.status === "done" ? "#d1fadf" : "#fef0c7", s.status === "done" ? "#067647" : "#93370d")}<div style="color:#667085;font-size:12px">${s.due ? "due " + esc(s.due) : "no due date"}${s.note ? " | blocker: " + esc(s.note) : ""}</div>`);
+  const rowsLong = longs.map(l => `<b>${esc(l.text)}</b><div style="color:#667085;font-size:13px">${esc(l.note)}${l.due ? " | next checkpoint " + esc(l.due) : ""}</div>`);
+  const rowsCar = [...closed.map(c => `<b>${esc(c.text)}</b> ${pill(c.dropped ? "dropped" : "done", c.dropped ? "#fee4e2" : "#d1fadf", c.dropped ? "#b42318" : "#067647")}${c.note ? `<div style="color:#667085;font-size:12px">${esc(c.note)}</div>` : ""}`),
+    ...stillOpen.map(c => `<b>${esc(c.text)}</b> ${pill("still open", "#fef0c7", "#93370d")}<div style="color:#667085;font-size:12px">${esc(c.lastNote)}${c.due ? " | new due " + esc(c.due) : ""}</div>`)];
+  const body =
+    (cards.length ? section("Carried-over items", "#1f4e79", bullets(rowsCar)) : "") +
+    section("Requests from " + CONFIG.boss, "#1f4e79", bullets(rowsAsk)) +
+    section("Short-term", "#1f4e79", bullets(rowsShort)) +
+    section("Long-term", "#1f4e79", bullets(rowsLong)) +
+    section("Done today", "#1f4e79", para($("done").value)) +
+    section("People / attendance", "#1f4e79", para($("people").value)) +
+    section("Customer contact", "#1f4e79", para($("customers").value)) +
+    section("Blocked / needs a decision", "#b42318", para(blockers));
+  const nice = new Date(today + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const html = wrap("Daily report: " + nice, CONFIG.reporter + " | " + CONFIG.businessName, flagBlock(flags), body);
+
+  await send({ kind: "daily", report_date: today, payload: JSON.stringify({ asks, shorts, longs, closed, stillOpen, flags: flags.length }), html, open_json: JSON.stringify(openList) }, "submitDaily", "Daily report submitted. Thank you.");
+}
+
+/* ---------- submit weekly ---------- */
+async function submitWeekly() {
+  const today = todayStr(), prios = readRows("prios");
+  if (prios.length < 1) return msg("Add at least one priority for next week.", "err");
+  if (prios.some(p => !p.note)) return msg("Every priority needs a \"why this, why now\" line.", "err");
+  const flags = [];
+  if (!$("w_done").value.trim()) flags.push("Nothing listed as finished this week.");
+  const prioHtml = `<table width="100%" cellpadding="0" cellspacing="0">` + prios.map((p, i) =>
+    `<tr><td style="padding:8px 0;border-bottom:1px solid #eef0f3;font-size:14px"><span style="display:inline-block;width:22px;height:22px;border-radius:99px;background:#1f4e79;color:#fff;text-align:center;font-size:12px;line-height:22px;margin-right:8px">${i + 1}</span><b>${esc(p.text)}</b><div style="color:#667085;font-size:13px;margin:2px 0 0 30px">${esc(p.note)}</div></td></tr>`).join("") + `</table>`;
+  const body =
+    section("Next week: priorities, in order", "#1f4e79", prioHtml) +
+    section("Finished this week", "#1f4e79", para($("w_done").value)) +
+    section("Slipped, and why", "#b42318", para($("w_slipped").value)) +
+    section("Customer outreach", "#1f4e79", para($("w_customers").value)) +
+    section("People", "#1f4e79", para($("w_people").value)) +
+    section("Risks nobody has asked about", "#b42318", para($("w_risks").value));
+  const nice = new Date(today + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const html = wrap("Weekly report: week ending " + nice, CONFIG.reporter + " | " + CONFIG.businessName, flagBlock(flags), body);
+  await send({ kind: "weekly", report_date: today, payload: JSON.stringify({ prios }), html, open_json: "" }, "submitWeekly", "Weekly report submitted. Thank you.");
+}
+
+/* ---------- send ---------- */
+async function send(obj, btnId, okText) {
+  const btn = $(btnId); btn.disabled = true; msg("Sending...", "ok");
+  const form = new URLSearchParams({ key: CONFIG.key, business: CONFIG.business, ...obj });
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 25000);
+    const r = await fetch(CONFIG.submitUrl, { method: "POST", body: form, signal: ctl.signal }); clearTimeout(t);
+    const j = await r.json();
+    if (!j.ok) throw new Error("not ok");
+    msg(okText, "ok");
+    if (obj.kind === "daily") setTimeout(() => location.reload(), 2500); else btn.disabled = false;
+  } catch (e) {
+    btn.disabled = false;
+    msg("Submit did not go through. Do NOT assume it was received. Try again, and tell " + CONFIG.boss + " if it fails twice.", "err");
+  }
+}
+
+addShort(); addLong();
+loadCarried();
+</script>
+</body>
+</html>
