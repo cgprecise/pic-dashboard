@@ -1,15 +1,15 @@
 {
-  "asOf": "Nov 11, 2026",
-  "inHouseTotal": 123,
+  "asOf": "Nov 12, 2026",
+  "inHouseTotal": 142,
   "rows": [
     {
       "name": "Precix",
-      "count": 28,
+      "count": 32,
       "pinned": true
     },
     {
       "name": "Trelleborg",
-      "count": 20,
+      "count": 22,
       "pinned": true
     },
     {
@@ -18,8 +18,8 @@
       "pinned": false
     },
     {
-      "name": "Sealing Specialties",
-      "count": 6,
+      "name": "Boyd Corporation",
+      "count": 11,
       "pinned": false
     }
   ]
