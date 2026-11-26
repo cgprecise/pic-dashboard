@@ -1,10 +1,10 @@
 {
-  "asOf": "Nov 25, 2026",
-  "inHouseTotal": 124,
+  "asOf": "Nov 26, 2026",
+  "inHouseTotal": 133,
   "rows": [
     {
       "name": "Precix",
-      "count": 21,
+      "count": 25,
       "pinned": true
     },
     {
